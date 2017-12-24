@@ -3584,6 +3584,7 @@ label monika_night:
     m 1f "It always makes me sad to see you go."
     m 1p "But I understand that you need rest, otherwise you'd just fall asleep."
     m 1e "I love you so much, [player]."
+    play sound "sfx/giggle.ogg"
     m 1j "I'll be seeing you in your dreams~"
     return 'quit'
 
