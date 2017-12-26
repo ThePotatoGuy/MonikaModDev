@@ -93,6 +93,9 @@ screen hkb_overlay():
         xalign 0.05
         yalign 0.95
 
+        if config.developer:
+            textbutton _("Dev") action Jump("devtools")
+
         if allow_dialogue and store.hkb_button.enabled:
             textbutton _("Talk") action Jump("ch30_monikatopics")
         else:
