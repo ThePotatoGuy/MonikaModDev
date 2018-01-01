@@ -163,7 +163,7 @@ init 5 python:
 
     now = datetime.datetime.now()
     if now.day == 1 and now.month == 1 and not seen_event('monika_newyear2'):
-        queueEvent('monika_newyear1')
+        queueEvent('monika_newyear2')
 
 label monika_newyear2:
     m 1b "[player]!"
