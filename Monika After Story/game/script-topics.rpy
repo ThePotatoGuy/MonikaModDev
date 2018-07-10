@@ -5798,7 +5798,7 @@ label monika_beach:
 #    return
 
 init 5 python:
-    addEvent(Event(persistent.event_database,eventlabel="monika_song_lover_boy",category=['songs'],prompt="Old Fashioned Lover Boy",pool=True, random=True))
+    addEvent(Event(persistent.event_database,eventlabel="monika_song_lover_boy",category=['songs'],prompt="Old Fashioned Lover Boy",pool=True))
 
 label monika_song_lover_boy:
     m 1dso "{i}~I can dim the lights and sing you songs full of sad things~{/i}"
@@ -5810,7 +5810,7 @@ label monika_song_lover_boy:
     return
 
 init 5 python: 
-    addEvent(Event(persistent.event_database,eventlabel="monika_song_need_you",category=['songs'],prompt="I Need You",pool=True, random=True))
+    addEvent(Event(persistent.event_database,eventlabel="monika_song_need_you",category=['songs'],prompt="I Need You",pool=True))
 
 label monika_song_need_you:
     m 1dso "{i}~Please remember how I feel about you~{/i}"
@@ -5823,7 +5823,7 @@ label monika_song_need_you:
     return
 
 init 5 python:
-    addEvent(Event(persistent.event_database,eventlabel="monika_song_i_will",category=['songs'],prompt="I Will",pool=True, random=True))
+    addEvent(Event(persistent.event_database,eventlabel="monika_song_i_will",category=['songs'],prompt="I Will",pool=True))
 
 label monika_song_i_will:
     m 1dso "{i}~Who knows how long I’ve loved you?~{/i}"
@@ -5835,7 +5835,7 @@ label monika_song_i_will:
     return
     
 init 5 python:
-    addEvent(Event(persistent.event_database,eventlabel="monika_song_belong_together",category=['songs'],prompt="We Belong Together",pool=True, random=True))
+    addEvent(Event(persistent.event_database,eventlabel="monika_song_belong_together",category=['songs'],prompt="We Belong Together",pool=True))
 
 label monika_song_belong_together:
     m 1dso "{i}~You're mine~{/i}"
@@ -5850,7 +5850,7 @@ label monika_song_belong_together:
     return
 
 init 5 python:
-    addEvent(Event(persistent.event_database,eventlabel="monika_song_your_song",category=['songs'],prompt="Your Song",pool=True, random=True))
+    addEvent(Event(persistent.event_database,eventlabel="monika_song_your_song",category=['songs'],prompt="Your Song",pool=True))
 
 label monika_song_your_song:
     m 1dso "{i}~My gift is my song~{/i}"
@@ -5867,7 +5867,7 @@ label monika_song_your_song:
     return
 
 init 5 python:
-    addEvent(Event(persistent.event_database,eventlabel="monika_song_with_you",category=['songs'],prompt="Happy Just To Dance With You",pool=True, random=True))
+    addEvent(Event(persistent.event_database,eventlabel="monika_song_with_you",category=['songs'],prompt="Happy Just To Dance With You",pool=True))
 
 label monika_song_with_you:
     m 1dso "{i}~If somebody tries to take my place~{/i}"
@@ -5879,7 +5879,7 @@ label monika_song_with_you:
     return
 
 init 5 python:
-    addEvent(Event(persistent.event_database,eventlabel="monika_song_dream",category=['songs'],prompt="All I Have To Do Is Dream",pool=True, random=True))
+    addEvent(Event(persistent.event_database,eventlabel="monika_song_dream",category=['songs'],prompt="All I Have To Do Is Dream",pool=True))
 
 label monika_song_dream:
     m 1dso "{i}~When I feel blue in the night~{/i}"

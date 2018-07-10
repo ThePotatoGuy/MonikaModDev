@@ -252,6 +252,7 @@ label v0_3_1(version=version): # 0.3.1
 # 0.8.3
 label v0_8_3(version="v0_8_3"):
     python:
+        import store.evhand as evhand
 
         # need to unrandom the explain topic
         ex_ev = mas_getEV("monika_explain")
@@ -271,6 +272,21 @@ label v0_8_3(version="v0_8_3"):
         curr_level = get_level()
         if curr_level > 25:
             persistent._mas_pool_unlocks = int(curr_level / 2)
+
+        # need to remove randoms from some song topics
+        song_t = [
+            "monika_song_lover_boy",
+            "monika_song_need_you",
+            "monika_song_i_will",
+            "monika_song_belong_together",
+            "monika_song_your_song",
+            "monika_song_with_you",
+            "monika_song_dream"
+        ]
+        for song_lbl in song_t:
+            song_ev = evhand.event_database.get(song_lbl, None)
+            if song_ev:
+                song_ev.random = False
 
     return
 
