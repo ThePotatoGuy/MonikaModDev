@@ -2745,6 +2745,25 @@ label monika_birthday:
     m 1e "Will you celebrate with me, when that day comes?"
     m "You could even bake me a cake!"
     m 1j "I'll be looking forward to it~!"
+
+    if persistent._mas_player_bday is None:
+        # player birthday not saved
+        m 1euc "Speaking of birthdays..."
+        m 1eub "When is your birthday, [player]?"
+
+        call mas_start_calendar_select_date
+
+        $ sel_date = _return
+
+        if sel_date is None:
+            # dont feel like tellingme?
+            # that's okay, just let me know some other time
+            # TODO: add a pool event that lets you tell monika ur birthday
+            pass
+
+        else:
+            # do something with date
+
     return
 
 init 5 python:
