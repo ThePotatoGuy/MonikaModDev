@@ -10519,9 +10519,34 @@ label monika_hemispheres_nogets_snow:
     
     
 init 5 python:
-    addEvent(Event(persistent.event_database,eventlabel="monika_dream",category=["life","monika"],prompt="I had a dream about you", pool=True))
+    addEvent(
+        Event(
+            persistent.event_database,
+            eventlabel="monika_dream",
+            category=["life","monika"],
+            prompt="I had a dream about you",
+            pool=True
+        )
+    )
+
+default persistent._mas_pm_had_dream_about_monika = None
+# This is only set to True when clicking this pool topic.
+# NOTE: we do not set to false ever.
+
+default persistent._mas_pm_had_lucid_dream_about_monika = None
+# True if the player ever had a lucid dream about Monika
+# NOTE: we do not set to False ever.
+
+default persistent._mas_monika_dream_log = []
+# dates when player had a dream about monika
+# list of tuples:
+#   [0]: date
+#   [1]: True if lucid, False if not
+
 
 label monika_dream:
+    $ persistent._mas_pm_had_dream_about_monika = True
+
     m 1sub "Really?!"
     m 1wub "That's amazing, [player]."
     m 1eub "I hope that it was an wonderful dream."
