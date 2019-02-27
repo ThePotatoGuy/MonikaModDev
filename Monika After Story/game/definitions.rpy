@@ -238,6 +238,8 @@ image glitch_color2:
         #1.0
         #linear 1.0 alpha 0.0
 
+#testing branch crap
+
 # Sayori
 image sayori 1 = im.Composite((960, 960), (0, 0), "sayori/1l.png", (0, 0), "sayori/1r.png", (0, 0), "sayori/a.png")
 image sayori 1a = im.Composite((960, 960), (0, 0), "sayori/1l.png", (0, 0), "sayori/1r.png", (0, 0), "sayori/a.png")
