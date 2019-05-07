@@ -12,7 +12,7 @@ init -999 python in _mas_dm_dm:
     # persistent databases:
     per_dbs = [
 
-        # ver 1, 2
+        # ver 1, 2, 3
         store.persistent.event_database,
         store.persistent._mas_compliments_database,
         store.persistent.farewell_database,
@@ -143,6 +143,12 @@ init -999 python in _mas_dm_dm:
             __rm_idxs(_db, item, _exp_len, idxs_rev)
 
 
+    def rp_idx(_db, index, new_value, skip_none=True):
+        """
+        Replaces a value at the specific index with the 
+        """
+
+
     ## migration functions
 
     def __dm_1_to_2_helper(curr_len):
@@ -223,7 +229,7 @@ init -999 python in _mas_dm_dm:
         """
         # versions 073-074 means we have 15 props
         __dm_1_to_2_helper(15)
-        
+
 
     def _dm_2_to_1():
         """
@@ -247,6 +253,43 @@ init -999 python in _mas_dm_dm:
         add_idxs_db(lock_db, curr_len, (rules_index, False))
 
 
+    def _dm_2_to_3():
+        """
+        Data migration from version 2 to 3
+
+        GOALS:
+            - replace string EV ACTS with numerical versions
+        """
+        action_index = 8
+
+        replace_map = {
+            "push": 1,
+            "queue": 2,
+            "unlock": 4,
+            "random": 8,
+            "pool": 16,
+        }
+
+        for _db in per_dbs:
+            for entry in _db:
+
+                # only unpack lines that contain an action
+                data_line = _db[entry]
+                if data_line[action_index] is not None:
+                    data_line = list(data_line)
+                    data_line[action_index] = replace_map.get(
+                        data_line[action_index],
+                        None
+                    )
+                    _db[entry] = tuple(data_line)
+
+
+    def _dm_3_to_2():
+        """
+        Data migration
+        """
+
+
     # data migration map maps data migration functions and a version jump:
     #   key: tuple of the following format:
     #       [0]: version starting from
@@ -263,6 +306,8 @@ init -999 python in _mas_dm_dm:
         # regular data migrations
         (1, 2): _dm_1_to_2,
         (2, 1): _dm_2_to_1,
+        (2, 3): _dm_2_to_3,
+        (3, 2): _dm_3_to_2,
     }
 
 

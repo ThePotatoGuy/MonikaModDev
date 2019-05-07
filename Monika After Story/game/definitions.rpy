@@ -26,6 +26,13 @@ python early:
     EV_ACT_RANDOM = "random"
     EV_ACT_POOL = "pool"
 
+    # TODO: swap out the constants once we data migrate over
+#    EV_ACT_PUSH = 1
+#    EV_ACT_QUEUE = 2
+#    EV_ACT_UNLOCK = 4
+#    EV_ACT_RANDOM = 8
+#    EV_ACT_POOL = 16
+
     # list of those special constants
     EV_ACTIONS = [
         EV_ACT_PUSH,
