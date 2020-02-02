@@ -684,8 +684,28 @@ init:
                     self.stockfish = open_stockfish('mod_assets/games/chess/stockfish_8_macosx_x64')
 
                 # Set Monika's parameters
-                self.stockfish.stdin.write("setoption name Skill Level value %d\n" % (persistent.chess_strength))
-                self.stockfish.stdin.write("setoption name Contempt value %d\n" % (self.MONIKA_OPTIMISM))
+                # TODO: actually make this a function
+                try:
+                    self.stockfish.stdin.write(
+                        "setoption name Skill Level value {0}\n".format(
+                            persistent.chess_strength
+                        )
+                    )
+                except Error as e:
+                    store.mas_utils.writelog(
+                        "Error setting skill level value: {0}".format(repr(e))
+                    )
+                    
+                try:
+                    self.stockfish.stdin.write(
+                        "setoption name Contempt value {0}\n".format(
+                            self.MONIKA_OPTIMISM
+                        )
+                    )
+                except Error as e:
+                    store.mas_utils.writelog(
+                        "Error setting contempt value: {0}".format(repr(e))
+                    )
 
                 # Set up facilities for asynchronous communication
                 self.queue = collections.deque()
