@@ -52,14 +52,20 @@ init -1 python in mas_globals:
     late_farewell = False
     # set to True if we had a late farewell
 
-    last_minute_dt = None
+    last_minute_dt = datetime.datetime.now()
     # last minute datetime (replaces calendar_last_chcked)
 
-    last_hour = None
+    last_hour = last_minute_dt.hour
     # number of the hour we last ran ch30_hour
 
-    last_day = None
+    last_day = last_minute_dt.day
     # numbr of the day we last ran ch30_day
+
+    time_of_day_4state = None
+    #Time of day, basically either morning, afternoon, evening, night. Set by ch30_hour, used in dlg
+
+    time_of_day_3state = None
+    #Time of day broken into 3 states. morning, afternoon, evening. Set by ch30_hour, used in dlg
 
     returned_home_this_sesh = bool(store.persistent._mas_moni_chksum)
     #Whether or not this sesh was started by a returned home greet
@@ -920,17 +926,14 @@ label ch30_main:
     # 1 - renable core interactions
     $ mas_DropShield_core()
 
-    # 2 - hotkey buttons enabled
-    $ store.hkb_button.enabled = True
-
-    # 3 - set keymaps
-    $ set_keymaps()
-
     # now we out of intro
     $ mas_in_intro_flow = False
 
     # set session data to startup values
     $ store._mas_root.initialSessionData()
+
+    # skip weather
+    $ skip_setting_weather = True
 
     # lastly, rebuild Event lists for new people if not built yet
     if not mas_events_built:
@@ -976,9 +979,9 @@ label pick_a_game:
 
         # hangman text
         if persistent._mas_sensitive_mode:
-            _hangman_text = "Word Guesser"
+            _hangman_text = _("Word Guesser")
         else:
-            _hangman_text = "Hangman"
+            _hangman_text = _("Hangman")
 
         # decide the say dialogue
         play_menu_dlg = store.mas_affection.play_quip()[1]
@@ -1377,41 +1380,26 @@ label ch30_post_exp_check:
 
         $ pushEvent(selected_greeting)
 
+    #Now we check if we should drink
+    $ MASConsumable._checkConsumables(startup=True)
+
     # if not persistent.tried_skip:
     #     $ config.allow_skipping = True
     # else:
     #     $ config.allow_skipping = False
 
-    window auto
-
-    if mas_skip_visuals:
-        # need to jump to initial setup, then we can jump to visual skip
-        jump ch30_preloop
-
-    # otherwise, we are NOT skipping visuals
-    $ set_keymaps()
-    $ mas_startup_song()
-
-    # rain check
-    # TODO: the weather progression alg needs to run here
-    # TODO: we actually might want to move this to preloop visual
-    #   setup as that makes more sense.
-    if not mas_weather.force_weather and not skip_setting_weather:
-        $ set_to_weather = mas_shouldRain()
-        if set_to_weather is not None:
-            $ mas_changeWeather(set_to_weather)
-
-    # FALL THROUGH
-
-label ch30_preloop_visualsetup:
-
-    # initial spaceroom
-    call spaceroom(dissolve_all=True, scene_change=True)
-
     # FALL THROUGH
 
 label ch30_preloop:
     # stuff that should happen right before we enter the loop
+
+    window auto
+
+    # NOTE: keymaps will be set, but all actions will be shielded unless
+    #   desired by the appropriate flow.
+    $ mas_HKRaiseShield()
+    $ mas_HKBRaiseShield()
+    $ set_keymaps()
 
     $ persistent.closed_self = False
     $ persistent._mas_game_crashed = True
@@ -1442,6 +1430,19 @@ label ch30_preloop:
         $ mas_skip_visuals = False
         $ quick_menu = True
         jump ch30_visual_skip
+
+    # setup scene to change on initial launch
+    $ mas_weather.should_scene_change = True
+
+    # rain check
+    # TODO: the weather progression alg needs to run here
+    if not mas_weather.force_weather and not skip_setting_weather:
+        $ set_to_weather = mas_shouldRain()
+        if set_to_weather is not None:
+            $ mas_changeWeather(set_to_weather)
+
+    # otherwise, we are NOT skipping visuals
+    $ mas_startup_song()
 
     jump ch30_loop
 
@@ -1523,6 +1524,14 @@ label ch30_post_mid_loop_eval:
 
     #Call the next event in the list
     call call_next_event from _call_call_next_event_1
+
+    # renable if not idle and currently disabled
+    if not mas_globals.in_idle_mode:
+        if not mas_HKIsEnabled():
+            $ mas_HKDropShield()
+        if not mas_HKBIsEnabled():
+            $ mas_HKBDropShield()
+
     # Just finished a topic, so we set current topic to 0 in case user quits and restarts
     $ persistent.current_monikatopic = 0
 
@@ -1731,6 +1740,12 @@ label ch30_minute(time_since_check):
 #   on start right away
 label ch30_hour:
     $ mas_runDelayedActions(MAS_FC_IDLE_HOUR)
+
+    #Runtime checks to see if we should have a consumable
+    $ MASConsumable._checkConsumables()
+
+    #Set our TOD var
+    $ mas_setTODVars()
     return
 
 # label for things that should run about once per day
@@ -1844,8 +1859,7 @@ label ch30_reset:
     $ store.mas_selspr.unlock_acs(mas_acs_ribbon_def)
 
     ## custom sprite objects
-    python:
-        store.mas_selspr._validate_group_topics()
+    $ store.mas_selspr._validate_group_topics()
 
     # monika hair/acs
     $ monika_chr.load(startup=True)
@@ -1923,12 +1937,7 @@ label ch30_reset:
             if freeze_date is not None and freeze_date > today:
                 persistent._mas_affection["freeze_date"] = today
 
-    ## should we drink coffee?
-    $ _mas_startupCoffeeLogic()
-
-    ## shoujld we drink hot chocolate
-    $ _mas_startupHotChocLogic()
-
+    #Do startup checks
     # call plushie logic
     $ mas_startupPlushieLogic(4)
 
@@ -1966,28 +1975,22 @@ label ch30_reset:
             persistent._mas_filereacts_reacted_map = dict()
 
     # set any prompt variants for acs that can be removed here
-    python:
-        # TODO: all of these are in GRP TOPIC MAP, so we should create
-        #   a function to parse those and set appropriate prompts.
-        if not monika_chr.is_wearing_acs_type("left-hair-clip"):
-            store.mas_selspr.set_prompt("left-hair-clip", "wear")
+    $ store.mas_selspr.startup_prompt_check()
 
-        if not monika_chr.is_wearing_acs_type("left-hair-flower"):
-            store.mas_selspr.set_prompt("left-hair-flower", "wear")
-
-        if not monika_chr.is_wearing_acs_type("choker"):
-            store.mas_selspr.set_prompt("choker", "wear")
-
-        if not monika_chr.is_wearing_ribbon():
-            store.mas_selspr.set_prompt("ribbon", "wear")
 
     ## certain things may need to be reset if we took monika out
     # NOTE: this should be at the end of this label, much of this code might
     # undo stuff from above
     python:
         if store.mas_dockstat.retmoni_status is not None:
-            mas_resetCoffee()
             monika_chr.remove_acs(mas_acs_quetzalplushie)
+
+            #We don't want to set up any drink vars/evs if we're potentially returning home this sesh
+            MASConsumable._reset()
+
+            #Let's also push the event to get rid of the thermos too
+            if not mas_inEVL("mas_consumables_remove_thermos"):
+                queueEvent("mas_consumables_remove_thermos")
 
     # make sure nothing the player has derandomed is now random
     $ mas_check_player_derand()
@@ -2037,4 +2040,7 @@ label ch30_reset:
         and not mas_globals.returned_home_this_sesh
     ):
         $ mas_d25SilentReactToGifts()
+
+    #Set our TOD var
+    $ mas_setTODVars()
     return
