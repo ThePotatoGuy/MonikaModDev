@@ -8,6 +8,11 @@ DS_RUNTIME_ONLY = "RUNTIME ONLY"
 LC_HASH = "#"
 LC_TQ = '"""'
 
+IMP_STR = "import"
+IMP_F_STR = "from"
+
+IS_EARLY = "early"
+
 
 def _clean_docstring_hash(raw_ds, leading_ws, use_first_line, cl_ds):
     """
@@ -133,16 +138,124 @@ def count_leading_whitespace(target):
     return len(target)
 
 
-class DocObject(object):
+def _parse_adv_import(import_line):
     """
-    A documentation object
+    Parses an advanced import
+    (from x import y [as z], y2 [as z2], y3 [as z3]...)
+
+    NOTE: Assumes that the import line is an advanced import
+
+    IN:
+        import_line - string containing the total import string
+
+    RETURNS: list of tuples:
+        [0] - the primary (aka used) name of the imported object
+        [1] - the name of the module/object importing from
+        [2] - the real name of the imported object if alias, or None if no
+            alias
+        or None if failed to parse
+    """
+    from_line, import_str, imports_str = import_line.partition(IMP_STR)
+    
+    # start with parsing the from
+    from_list = from_line.split()
+    if len(from_list) != 2:
+        # must have 2 items
+        return None
+    module_name = from_list[1]
+
+    # now parse the list of imports
+    imports_list = imports_str.split(",")
+    if len(imports_list) < 1:
+        return None
+
+    # each imported item
+    imported_items = []
+    for import_item in imports_list:
+        import_list = import_item.split()
+        if len(import_list) < 1:
+            return None
+
+        # check for alias
+        if len(import_list) > 2:
+            used_name = import_list[2]
+            real_name = import_list[0]
+        else:
+            used_name = import_list[0]
+            real_name = None
+
+        # save imported item
+        imported_items.append((used_name, module_name, real_name))
+
+    return imported_items
+
+
+def _parse_import(import_line):
+    """
+    Parses a basic import line into its pieces.
+    (import x [as y])
+
+    NOTE: Assumes that the import line is a basic import
+
+    IN:
+        import_line - string containing the total import string
+
+    RETURNS: Tuple of the following format:
+        [0] - the primary (aka used) name of the import
+        [1] - the real name of the import if alias, or None if no alias
+        or None if failed to parse
+    """
+    import_list = import_line.split()
+
+    # sanity check
+    if len(import_list) < 2:
+        return None
+
+    # do we have an alias?
+    if len(import_list) > 3:
+        used_name = import_list[3]
+        real_name = import_list[1]
+    else:
+        used_name = import_list[1]
+        real_name = None
+
+    return used_name, real_name
+
+
+# TODO: move name/container/children to base class DocObjectBase
+
+class DocObjectBase(object):
+    """
+    Base parts of a DocObject.
 
     PROPERTIES:
         name - name of the documentation object
         container - reference to the container of this documentation object
+            Should be a DocObjectBase
             None means no container
-        children - dict of DocObjects that this DocObject contains. key is
-            name of the child object
+        children - dict of DocObjectBase objects that this DocObjectBase
+            contains. key is name of the child object
+    """
+
+    def __init__(self, name, container):
+        """
+        Constructor for a DocObjectBase
+
+        IN:
+            name - name of this object
+            container - the DocObject that contains this object. 
+                pass in None if no object contains this object
+        """
+        self.name = name
+        self.container = container
+        self.children = {}
+
+
+class DocObject(DocObjectBase):
+    """
+    A documentation object that could have a docstring
+
+    PROPERTIES:
         raw_docstring - the raw documentation associated with this object.
             this should be a list of strings containing the docstring for
             an object. Docstrings may be the string contained in a 3-quote
@@ -163,8 +276,22 @@ class DocObject(object):
             This generally refers to `_` prefixed items
         built_in - True if this object is a built-in python function 
             False if not. This usually means an overridable.
-        constructor - True if this object is a constructor for the container.
+        constructor - True if this function is a constructor for the container.
             false if not.
+        imports - dict of things that are imported
+            key: name of the import (as it would be used by the object)
+            value: depends:
+                None - this is a direct import (import antigrav)
+                string - this is an aliased import. The string is the real
+                    name of the import 
+                    (import antigrav as flying becomes flying: antigrav)
+                tuple - this is an advanced import
+                    (from antigrav import flying [as hover])
+                    [0] - the name of the thing imported from (antigrav)
+                    [1] - depends:
+                        None - no alias
+                        string - this is aliased. The stirng is the real
+                            name of the imported object (flying)
     """
     
     def __init__(self, name, raw_docstring, container):
@@ -172,22 +299,19 @@ class DocObject(object):
         Constructor for a Docobject
 
         IN:
-            name - name of this object
+            name - See DocObjectBase
             raw_docstring - raw documentation associated with this object
                 pass in None if no documentation
-            container - the DocObject that contains this object. 
-                pass in None if no object contains this object
+            Container - See DocObjectBase constructotr
         """
-        self.name = name
-        self.container = container
-        self.children = {}
+        super(DocObject, self).__init__(name, container)
         self.deprecated = False
         self.runtime_only = False
         self.private = False
         self.internal = False
         self.docstring = ""
         self.built_in = False
-        self.constructor = False
+        self.imports = {}
 
         if raw_docstring is None:
             raw_docstring = []
@@ -197,6 +321,63 @@ class DocObject(object):
         # initial setup
         self.parse_name()
         self.parse_docstring()
+
+    def __eq__(self, other):
+        """
+        Equivalence is defined by name
+        """
+        if isinstance(other, DocObject):
+            return self.name == other.name
+        return NotImplemented
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __gt__(self, other):
+        if isinstance(other, DocObject):
+            return self.name > other.name
+        return NotImplemented
+
+    def __lt__(self, other):
+        if isinstance(other, DocObject):
+            return self.name < other.name
+        return NotImplemented
+
+    def __le__(self, other):
+        return not self > other
+
+    def __ge__(self, other):
+        return not self < other
+
+    def __len__(self):
+        """
+        Length is defined by the number of children
+        """
+        return len(self.children)
+
+    def add_import(self, import_line):
+        """
+        Adds an import to the imports
+
+        IN:
+            import_line - complete string line for an import
+        """
+        if import_line.startswith(IMP_STR):
+            import_data = _parse_import(import_line)
+
+            if import_data is None:
+                return
+
+            self.imports[import_data[0]] = import_data[1]
+
+        elif import_line.startswith(IMP_F_STR):
+            import_data = _parse_adv_import(import_line)
+
+            if import_data is None:
+                return
+
+            for used_name, mod_name, real_name in import_data
+                self.imports[used_name] = (mod_name, real_name)
 
     def parse_docstring(self):
         """
@@ -266,5 +447,198 @@ class DocFunction(DocObject):
     Representation of a function
 
     ADDITIONAL PROPERTIES:
-        static - 
+        static_m - True if staticmethod, False if not
+        class_m - True if classmethod, False if not
     """
+
+    def __init__(self, name, raw_docstring, container):
+        """
+        Constructor for a DocFunction
+
+        IN:
+            See DocObject constructor
+        """
+        super(DocFunction, self).__init__(name, raw_docstring, container)
+        self.static_m = False
+        self.class_m = False
+
+
+class DocClass(DocObject):
+    """
+    Reprsentation of a class
+
+    ADDITIONAL PROPERTIES:
+        base - name of base class (DocObject name)
+    """
+
+    def __init__(self, name, raw_docstring, container, base):
+        """
+        Constructor for a DocClass
+
+        IN:
+            See DocObject constructor
+            base - name of the base class
+        """
+        super(DocClass, self).__init__(name, raw_docstring, container)
+        self.base = base
+
+
+class DocStoreLevel(DocObject):
+    """
+    Representation of a store module level
+
+    ADDITIONAL PROPERTIES:
+        init_lvl - the init level of this store
+    """
+
+    def __init__(self, name, raw_docstring, container, init_lvl):
+        """
+        Constructor for a DocStoreLevel
+
+        IN:
+            See DocObject constructor
+            container - DocStore this level belongs to
+            init_level - init level of this store level
+        """
+        super(DocStoreLevel, self).__init__(name, raw_docstring, container)
+        self.init_lvl = init_lvl
+
+
+class DocStore(DocObjectBase):
+    """
+    Representation of a store module
+
+    ADDITIONAL PROPERTIES:
+        levels - dict containing other DocObjects based on init level
+            key: init level
+            value: DocStoreLevel object
+        master - the CombinedDocStore object that
+    """
+
+    def __init__(self, name, raw_docstring, container):
+        """
+        Constructor for a DocStore
+
+        IN:
+            See DocObject constructor
+            container - DocRPY object containing this store
+        """
+        super(DocStore, self).__init__(name, raw_docstring, container)
+        self.levels = {}
+
+    def createStoreLevel(self, init_lvl, raw_docstring):
+        """
+        Create a DocStoreLevel object for this DocStore.
+        
+        NOTE: if a docstorelevel object already exists for the init lvl,
+        that object is returned instead
+
+        IN:
+            init_lvl - init level to create DocStoreLevel object for
+            raw_docstring - docstring to use for this DocStoreLevel
+
+        RETURNS: DocStoreLevel object created (or found)
+        """
+        doc_sl = self.getStoreLevel(init_lvl)
+        if doc_sl is None:
+            doc_sl = DocStoreLevel(
+                self.name + "_" + str(init_lvl),
+                raw_docstring,
+                self
+            )
+            self.levels[init_lvl] = doc_sl
+
+        return doc_sl
+
+    def getStoreLevel(self, init_lvl):
+        """
+        Gets a DocStoreLevel object for the given init lvl
+
+        IN:
+            init_lvl - init lvl to get DocStoreLevel object for
+                Should be an int
+
+        RETURNS: DocStoreLevel object, or NOne if no docsl
+        """
+        return self.levels.get(init_lvl, None)
+
+
+class DocEarly(DocObject):
+    """
+    Representation of a python early module
+
+    ADDITIONAL PROPERTIES:
+        None
+    """
+    
+    def __init__(self, raw_docstring, container):
+        """
+        Constructor for a DocEarly. 
+
+        IN:
+            raw_docstring - See DocObject
+            container - DocRpy object containig this DocEarly
+        """
+        super(DocEarly, self).__init__(IS_EARLY, raw_docstring, container)
+
+
+class DocRPY(DocObjectBase):
+    """
+    Representation of an rpy file
+
+    ADDITIONAL PROPERTIES:
+        None
+    """
+    pass
+
+
+# combined doc objects
+
+
+class CombinedDocObject(object):
+    """
+    A CombinedDocObject is a special type of object that contains references
+    to other DocObjects of similar type that should be considered one entity
+    to renpy.
+
+    PROPERTIES:
+        refs - list of DocObjects that this CombinedDocObject combines
+    """
+
+    def __init__(self):
+        self.refs = []
+
+
+
+
+class CombinedDocStore(object):
+    pass # TODO
+
+
+# primary documentation object
+
+class Documentation(object):
+    """
+    Object containing all DocObjects related to the documenting the MAS files
+
+    PROPERTIES:
+        files - dict. values can be DocRPY or dicts if there are multiple
+                directorties
+            key: string filename (or dir)
+            value: DocRPY (or dict of dir)
+            This is effectively the actual structure of data on disk
+        stores - dict of store modules (DocStore) objects
+            key: string name of store
+            value: DocStore object
+            This is the structure of data as seen by renpy.
+        early - the main DocEarly object. Represents all instances of python
+            early as seen by renpy.
+    """
+
+    def __init__(self):
+        """
+        Constructor
+        """
+        self.files = {}
+        self.stores = {}
+        # self.early = DocEarly

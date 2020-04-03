@@ -1,5 +1,3 @@
-## TODO
-## we need a neato menu for everything
 #
 # VER: python 2.7
 
