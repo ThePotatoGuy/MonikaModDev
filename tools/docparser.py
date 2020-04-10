@@ -1,33 +1,52 @@
 # parses rpy files for things to convert into doc objects
 
 import docobject 
+from docobject import DocFunction, DocClass, DocStoreLevel, DocStore, DocRPY,\
+        DocEarly, DocLevel, DocScreen, Documentation
 
 
 # the documentation object we use
 # GLOBAL
-docs = docobject.Documentation()
+docs = Documentation()
 
 
 # parsing states
 
-PARSE_NORMAL = 1 
+PARSE_NORMAL = 2 ** 0
 # normal parsing state
 
-PARSE_TQ = 2
+PARSE_TQ = 2 ** 1
 # set when we found an opening Triple Quote comment and are parsing it
 
-PARSE_ITQ = 4
+PARSE_ITQ = 2 ** 2
 # set when we are in a TQ but should ignore this TQ because its not in a
 # docstring style format
 
-PARSE_OBJECT = 8
+PARSE_OBJECT = 2 ** 3
 # set when we found an object to parse, which means we should assume following
 # lines are object related
 
-PARSE_OBJECT_OP = 16
+PARSE_OBJECT_OP = 2 ** 4
 # set if the object we are parsing had an open parent, which means we need to
 # assume following lines are code related to object.
 
+PARSE_OB_SL = 2 ** 5
+# set if we are parsing a store level object
+
+PARSE_OB_ER = 2 ** 6
+# set if we are parsing a py early object
+
+PARSE_OB_CLS = 2 ** 7
+# set if we are parsing a class
+
+PARSE_OB_FUN = 2 ** 8
+# set if we parsing a function
+
+PARSE_DONE = 2 ** 9
+# set when the parse is complete
+
+PARSE_MLN = 2 ** 10
+# set when are building a single line out of multiple lines
 
 def add_state(st, stadd):
     """
@@ -55,18 +74,6 @@ def in_state(st, stcmp):
     return (st & stcmp) > 0
 
 
-def is_valid_line(line):
-    """
-    Checks if the given line is something we can parse
-
-    IN:
-        line - string line to parse
-
-    RETURNS: True if its a line with actual parsable data, False if not
-    """
-    return len(line.strip()) > 0
-
-
 def rm_state(st, strm):
     """
     Removes the given state from teh current state
@@ -83,168 +90,542 @@ def rm_state(st, strm):
     return st
 
 
-def parse_file(docobj, fileobj):
+def strip_twsbs(line):
     """
-    Parses an rpy file into a DocRPY
+    Removes trailing whitespace and backslash 
 
     IN:
-        docobj - the DocRPY to fill out
-        fileobj - the file object to read
+        line - line to strip
 
-    OUT:
-        docobj - the DocRPY filled out with data
+    RETURNS: stripped line
+    """
+    return line.rstrip(string.whitespace + "\\")
+
+
+class RPYFileParser(object):
+    """
+    Parses RPY files
     """
 
-    # setup the potential objects we may exist in
-    # for now, we ignore things that are NOT in stores.
+    def __init__(self):
+        """
+        Constructor
+        """
+        self.data = None
+        # DocRPY object containing data
 
-    curr_sl = None
-    # current DocStoreLevel object (or DocEarly)
+        self.state = 0
+        # current state
 
-    curr_class = None
-    # curretn DocClass object
-    
-    curr_func = None
-    # current DocFunction object
+        self.fileobj = None
+        # file object of the file we need to read
 
-    expected_ws = 0
-    # the amount of whitespace we are expecting a line to have
+        self.cr_sl = None
+        # current store level
 
-    init_data = None
-    # current init data
+        self.cr_cls = None
+        # current class
 
-    pre_ds_list = []
-    # list of docstringables as we find them
+        self.cr_fun = None
+        # current function
 
-    pst_ds_list = []
-    # list of docstringablse after an object
+        self.exp_ws = 0
+        # the amount of whitespace we are expecting a line to have
 
-    state = PARSE_NORMAL
+        self.obj_data = None
+        # set when parsing an object
+        # always reset to null once the object has been made
 
-    # begin the parse process
-    for line in fileobj:
+        self.pre_ds = []
+        # list of docstringables as we find them
 
-        # start by getting leading ws
-        curr_ws = docobject.count_leading_whitespace(line)
+        self.pst_ds = []
+        # list of docstringables after an object
 
-        # and tokens
-        tokens = line.split()
+    def add_pre(self, line):
+        """
+        Adds the given line to the pre ds list
 
-        # first check for comments
-        if in_state(state, PARSE_TQ):
-            # in the TQ state, we dont acare about anything except adding
-            # the comment to the correct ds
+        IN:
+            line - line to add to the preds list
+        """
+        self.pre_ds.append(line)
 
-            if not in_state(state, PARSE_ITQ):
-                # must a valid triple comment
+    def add_pst(self, line):
+        """
+        Adds the given line to the pst ds list
 
-                if in_state(state, PARSE_NORMAL):
-                    # add to pre ds list
-                    pre_ds_list.append(line)
+        IN:
+            line - line to add to the pst list
+        """
+        self.pst_ds.append(line)
 
-                elif in_state(state, PARSE_OBJECT):
-                    # we just parsed an object, this is related to that as a
-                    # post docstring
-                    pst_ds_list.append(line)
+    def clear_ds(self):
+        """
+        Clears both docstring lists
+        """
+        self.clear_pre_ds()
+        self.clear_pst_ds()
 
-            if docobject.contains_tq(line):
-                # this triple quote is ending.
-                rm_state(state, PARSE_TQ)
+    def clear_od(self):
+        """
+        Clears object data
+        """
+        self.obj_data = None
 
-                # dont do anything if we are in open object mode
-                if not in_state(state, PARSE_OBJECT_OP):
+    def clear_pre_ds(self):
+        """
+        Clears the pre docstring list
+        """
+        self.pre_ds = []
 
-                    # if we are doing object stuff, now we must act
-                    if in_state(state, PARSE_OBJECT):
-                        # TODO: build appropriate objects
+    def clear_pst_ds(self):
+        """
+        Clears the post docstring list
+        """
+        self.pst_ds = []
 
-                        if init_data is not None:
-                            # building a DocStoreLevel
-                            ds_o = docobj.create_store(init_data[1])
-                            curr_sl = ds_o.create_storelvl(init_data[0])
-                            init_data = None
+    def _cr_pre_cdr(self, doc_cls, name):
+        """
+        CReates a doc object using the
+        PRE docstring list and setting the
+        Container to the internal
+        DocRpy
+
+        NOTE: will also clear the pre_ds list
+
+        IN:
+            doc_cls - the class of DocObject to create
+            name - the name of the doc object to create
+        """
+        self.data.add_child(doc_cls(name, self.pre_ds, self.data))
+        self.clear_pre_ds()
+
+    def dindent(self):
+        """
+        De-indents the expected ws
+        """
+        self.exp_ws -= 4
+
+    def getdocrpy(self):
+        """
+        Gets the docrpy object, or None if no parse was done
+
+        RETURNS: DocRPY object that was created, or None if no parse was
+            completed
+        """
+        if self._st_in(PARSE_DONE):
+            self._st_rm(PARSE_DONE)
+            return self.data
+
+        return None
+
+    def indent(self):
+        """
+        Indents the expected ws
+        """
+        self.exp_ws += 4
+
+    def prepare(self, fileobj, filename):
+        """
+        Loads a file and prepares the parser for parsing
+
+        IN:
+            fileobj - the file object to open and parse from.
+                NOTE: will be seeked to start
+            filename - name of the file we are reading
+        """
+        self.fileobj = fileobj
+        self.fileobj.seek(0)
+        self.data = DocRPY(filename, None)
+        self.state = PARSE_NORMAL
+
+    def parse(self):
+        """
+        Parses the rpy file obj into a docRPY
+
+        Call self.prepare before running this.
+        Call self.getdocrpy to retrieve the created object
+        """
+        # must call prepare before starting
+        if self.state == 0:
+            return
+
+        combo_line = []
+        # for buildilng larger lines if needed
+
+        # begin the parse process
+        for r_line in self.fileobj:
+
+            # set txt properties
+            line = r_line
+            # start by getting leading ws
+            curr_ws = docobject.count_leading_whitespace(r_line)
+            # and carve out text without ws
+            lnw = r_line.strip()
+            # and tokens
+            tokens = r_line.split()
+
+            # first check for comments
+            if in_state(state, PARSE_TQ):
+                # in the TQ state, we dont acare about anything except adding
+                # the comment to the correct ds
+
+                if not in_state(state, PARSE_ITQ):
+                    # must a valid triple comment
+
+                    if in_state(state, PARSE_NORMAL):
+                        # add to pre ds list
+                        self.add_pre(line)
+
+                    elif in_state(state, PARSE_OBJECT):
+                        # we just parsed an object, this is related to that as a
+                        # post docstring
+                        self.add_pst(line)
+
+                if docobject.contains_tq(line):
+                    # this triple quote is ending.
+                    rm_state(state, PARSE_TQ)
+
+                    # dont do anything if we are in open object mode
+                    if not in_state(state, PARSE_OBJECT_OP):
+
+                        # if we are doing object stuff, now we must act
+                        if in_state(state, PARSE_OBJECT):
+                            # TODO: build appropriate objects
+
+                            if init_data is not None:
+                                # building a DocStoreLevel
+                                ds_o = docobj.create_store(init_data[1])
+                                curr_sl = ds_o.create_storelvl(init_data[0])
+                                init_data = None
 
 
-                        #elif curr_class is not None:
-                        # TODO: need to finish DocLabel/DocScreen and put them
-                        #   in Documentation class
+                            #elif curr_class is not None:
 
-        elif tokens[0].startswith(docobject.LC_HASH):
-            # is the first non whitespace a hash comment character
-            # NOTE: must be checked before triple quote checking
+            elif lnw.endswith("\\"):
+                # if the line ends with a backspace, then we need to build 
+                # a combo line for the actual line
 
-            if not in_state(state, PARSE_OBJECT_OP):
-                # always ignore things if we are parsing an open object
+                if self._st_in(PARSE_MLN):
+                    # already in multi-lnie state, add the lnw with bs strip
+                    combo_line.append(strip_twsbs(lnw))
 
-                # this a comment so add to appropriate lsit
-                if in_state(state, PARSE_NORMAL):
-                    pre_ds_list.append(line)
-
-                elif in_state(state, PARSE_OBJECT):
-                    pst_ds_list.append(line)
-
-        elif docobject.LC_TQ in line:
-            # we found a triple quote, which means we are now in tq comment
-            # mode
-
-            add_state(state, PARSE_TQ)
-
-            # however we must check that its a docstring before parsing as
-            # a docstring
-            if (
-                    docobject.sw_tq(tokens[0])
-                    and not in_state(state, PARSE_OBJECT_OP)
-            ):
-                if in_state(state, PARSE_NORMAL):
-                    pre_ds_list.append(line)
-
-                elif in_state(state, PARSE_OBJECT):
-                    pst_ds_list.append(line)
+                else:
+                    # not in multi-line state, add the real line with
+                    # r+bs strip
+                    combo_line.append(strip_twsbs(r_line))
+                    self._st_add(PARSE_MLN)
 
             else:
-                # otherwise is a tq but not a valid one for docstrings
-                add_state(state, PARSE_ITQ)
+                # non-TQ stuff
+                
+                if self._st_in(PARSE_MLN):
+                    # we just finished a combo line. Join the combo and use
+                    # as the line
+                    line = "".join(combo_line)
+                    lnw = line.strip()
+                    tokens = line.split()
+                    combo_line = []
+                    self._st_rm(PARSE_MLN)
 
-        elif in_state(state, PARSE_OBJECT_OP):
+                self._parse_ntq(line, lnw, tokens, curr_ws)
+
+    def _parse_ac(self, line, lnw, cws):
+        """
+        Parses things as code
+
+        IN:
+            line - line to parse
+            lnw - line with no whitespace
+            cws - current whitespace
+        """
+        if self._st_in(PARSE_OBJECT_OP):
             # we are in open object mode, but no comment
             # this means we probably are in code and should check for
             # a closing
 
             if docobject.ew_pcln(line):
-                # NOTE: end paren and colon should always end an open object
-                #   and should always be on its own line
-                rm_state(state, PARSE_OBJECT_OP)
+                # NOTE: end paren and colon should always end an open
+                #   object and should always be on its own line
+                self._st_rm(PARSE_OBJECT_OP)
+                self.indent()
 
-        elif curr_sl is None:
-            # we are not in a store. We shoudl check for potential:
-            #   - init
-            #   - label
-            #   - screen
+            return
+
+        # otherwise we need to parse as code
+
+        # first compare ws
+        if cws < self.exp_ws:
+            # if the current whitespace is less than expected, it
+            # means we've left the current indent level.
+            # In this case, we need to clear objects based on indent lvl
+
+            # clear out function if we have it
+            if self.cr_fun is not None:
+                self.cr_fun = None
+                self.dindent()
+
+            # if still more ws than expected, clear out cls if have it
+            if cws < self.exp_ws:
+                if self.cr_cls is not None:
+                    self.cr_cls = None
+                    self.dindent()
+
+            # if still more ws than expected, clear out sl if have it
+            if cws < self.exp_ws:
+                if self.cr_sl is not None:
+                    self.cr_sl = None
+                    self.dindent()
+
+            # at this point we MUST be at the correct indent level
+
+        # now parse the line
+
+        if self.cr_sl is None:
+            if cws == 0:
+                # only allowed to parse something if no leading WS
+                self._parse_zws_lvl(line, lnw)
+
+        elif self.cr_cls is None:
+            self._parse_sl_lvl(line, lnw)
+
+        elif self.cr_fun is None:
+            self._parse_cls_lvl(line, lnw)
 
         else:
-            # we are not parsing valid code at this time
+            self._parse_fun_lvl(line, lnw)
 
-            # we only can parse something we have have no leading ws
-            if curr_ws == 0:
-                init_data = docobject.parse_if_initpy(tokens)
+    def _parse_cls_lvl(self, line, lnw):
+        """
+        Parses things for the class level
 
-                if init_data is not None:
-                    # we have a store now !
-                    state = PARSE_OBJECT
+        IN:
+            line - line to parse
+            lnw - line with no whitespace
+        """
+        # in the class level, we should check for
+        #   - imports
+        #   - functions
+
+        if self._try_parse_import(lnw, self.cr_cls):
+            # found some imports
+            return
+
+        # check for function
+        self._try_parse_func(lnw)
+
+    def _parse_fun_lvl(self, line, lnw):
+        """
+        Parses things for the function level
+
+        IN:
+            line - line to parse
+            lnw - line with no whitespace
+        """
+        # in the function level, we should check for
+        #   - improts
+        #   - globals (TODO for some time)
+        self._try_parse_import(lnw, self.cr_fun)
+
+    def _parse_ntq(self, line, lnw, tokens, cws):
+        """
+        Parses things when we are not in a TQ mode
+
+        IN:
+            line - line to parse
+            lnw - line with no whitespace
+            tokens - list of tokens
+            cws - current white space
+        """
+        if tokens[0].startswith(docobject.LC_HASH):
+            # is the first non whitespace a hash comment character
+            # NOTE: must be checked before triple quote start checking
+
+            if not self._st_in(PARSE_OBJECT_OP):
+                # always ignore things if we are parsing an open object
+
+                # this a comment so add to appropriate lsit
+                if self._st_in(PARSE_NORMAL):
+                    self.add_pre(line)
+
+                elif self._st_in(PARSE_OBJECT):
+                    self.add_pst(line)
+
+        elif docobject.LC_TQ in line:
+            # we found a triple quote, which means we are now in tq comment
+            # mode
+
+            self._st_add(PARSE_TQ)
+
+            # however we must check that its a docstring before parsing as
+            # a docstring
+            if (
+                    docobject.sw_tq(tokens[0])
+                    and not self._st_in(PARSE_OBJECT_OP)
+            ):
+                if self._st_in(PARSE_NORMAL):
+                    self.add_pre(line)
+
+                elif self._st_in(PARSE_OBJECT)
+                    self.add_pst(line)
+
+            else:
+                # otherwise is a tq but not a valid one for docstrings
+                self._st_add(PARSE_ITQ)
+
+        # TODO: need to handle building an object if we reach a non comment
+        #   donig a post docstring
+        elif len(lnw) > 0:
+            # otherwise, we might need to parse, but we should only do things
+            # if we have actual text to deal with
+            self._parse_ac(ilne, lnw, cws)
+
+    def _parse_sl_lvl(self, line, lnw):
+        """
+        Parses things that should be parsed in the StoreLevel level
+
+        IN:
+            line - line to parse
+            lnw - line with no whitespace
+        """
+        # in the store level, we should check for
+        #   - imports
+        #   - classes
+        #   - functions
+
+        if self._try_parse_import(lnw, self.cr_sl):
+            # found some imports
+            return
+
+        # check for class
+        data = DocClass.oparse_line(lnw)
+        if data is not None:
+            # we have valid class data, we are now in a class
+            self.obj_data = data
+            self._st_add(PARSE_OBJECT | PARSE_OB_CLS)
+            self.indent()
+            return
+
+        # check for functions
+        self._try_parse_func(lnw)
 
 
-            # we only care about lines when not in comment
+    def _parse_zws_lvl(self, line, lnw):
+        """
+        Parses things that should be parsed on the zero ws level
 
+        IN:
+            line - line to parse
+            lnw - line with no whitespace
+        """
+        # on the zero level, we shoudl check for
+        #   - py early
+        #   - init
+        #   - label
+        #   - screen
+
+        if DocEarly.oparse_line(lnw):
+            # we have entered a py early
+            self.obj_data = True
+            self._st_add(PARSE_OBJECT | PARSE_OB_ER)
+            self.indent()
+            return
+
+        # check for init
+        data = DocStoreLevel.oparse_line(lnw)
+        if data is not None:
+            # we have valid init data which means we
+            # are now in a store
+            self.obj_data = data
+            self._st_add(PARSE_OBJECT | PARSE_OB_SL)
+            self.indent()
+            return
+
+        # check for label
+        data = DocLabel.oparse_line(lnw)
+        if data is not None:
+            # we have a label. Labels cannot have documentation
+            # post the label, so instead we will build the
+            # object now and add
+            self._cr_pre_cdr(DocLabel, data[0])
+            return
+
+        # check for screen
+        data = DocScreen.oparse_line(lnw)
+        if data is not None:
+            # we have a screen. Screens cannot have docs
+            # post the label, so instead we build obj
+            self._cr_pre_cdr(DocScreen, data[0])
+
+    def _st_add(self, stadd):
+        """
+        Adds the state to the internal state
+
+        IN:
+            stadd - state to add
+        """
+        add_state(self.state, stadd)
+
+    def _st_in(self, stcmp):
+        """
+        Checks if the given state is in the internal state
+
+        IN:
+            stcmp - state to check for
+
+        RETURNS: True if stcmp is in state, False otherwise
+        """
+        return in_state(self.state, stcmp)
+
+    def _st_rm(self, strm):
+        """
+        Removes the state from the internal state
+
+        IN:
+            strm - state to remove
+        """
+        rm_state(self.state, strm)
+
+    def _try_parse_func(self, lnw):
+        """
+        Attempts to parse a function
+
+        IN:
+            lnw - line with no whitespace
+
+        RETURNS: True if parsed, False if not
+        """
+        data = DocFunction.oparse_line(lnw)
+        if data is None:
+            return False
+
+        # we have valid function data, we are now in a function
+        self.obj_data = data
+        self._st_add(PARSE_OBJECT | PARSE_OB_FUN)
+
+        # are we dealing with an open paren case?
+        if docobject.has_ucp(lnw):
+            self._st_add(PARSE_OBJECT_OP)
 
         else:
-            # this is the primary case that we care about
-            # if this is not None, then we are in the middle of parsing
-            # something that actually matters.
+            # otherwise we can indent normally
+            self.indent()
 
+        return True
 
+    def _try_parse_import(self, lnw, cnt):
+        """
+        Attempts to parse an import
 
-            # TODO
-            pass
+        IN:
+            lnw - line with no whitespace
+            cnt - container object to add imports to
 
-        else:
+        RETURNS: True if parsed, False if not
+        """
+        if docobject.sw_imp(lnw):
+            cnt.add_import(lnw)
+            return True
+        return False
 

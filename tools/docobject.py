@@ -17,8 +17,10 @@ IMP_F_STR = "from"
 KW_CLASS = "class"
 KW_DEF = "def"
 KW_EARLY = "early"
-KW_PYTHON = "python"
 KW_INIT = "init"
+KW_LABEL = "label"
+KW_PYTHON = "python"
+KW_SCREEN = "screen"
 
 SM_GLOBAL = "global"
 
@@ -33,7 +35,9 @@ RE_FIMPORT = re.compile("from ([\w]+) import (.+)")
 RE_FIMPORT_A = re.compile("([\w]+)(?: as ([\w]+))?")
 RE_FUNC = re.compile("def ([\w]+)\(")
 RE_IMPORT = re.compile("import ([\w]+)(?: as ([\w]+))?")
+RE_LABEL = re.compile("label ([\w]+)(?:\(.*\))?:")
 RE_PYEARLY = re.compile("python early:")
+RE_SCREEN = re.compile("screen ([\w]+)(?:\(.*\))?:")
 RE_STORE = re.compile(
     "init (?:python(?: in (?P<store>[\w]+))?|"
     "(?P<init_lvl>-?[0-9]+) python(?: in (?P<init_store>[\w]+))?):"
@@ -270,18 +274,6 @@ def is_direct_import(ikey, ival):
     return ival is None
 
 
-def is_python_early(line):
-    """
-    Checks if the given line is python early
-
-    IN:
-        line - trimmed line to check
-
-    RETURNS: True if python early, False if not
-    """
-    return RE_PYEARLY.match(line) is not None
-
-
 def _parse_adv_import(import_line):
     """
     Parses an advanced import
@@ -373,37 +365,6 @@ def _parse_import(import_line):
     return used_name, real_name
 
 
-def parse_if_initpy(line):
-    """
-    Checks if the given line is an init python line and parses as needed
-
-    IN:
-        line - trimmed line to parse
-
-    RETURNS: tuple of the following format:
-        [0] - init level
-        [1] - store name
-        or None if not an init line
-    """
-    matches = RE_STORE.match(line)
-    if matches is None:
-        return None
-
-    matchdict = matches.groupdict(SM_GLOBAL)
-
-    # take out init and stores
-    init_lvl = utils.tryparseint(matchdict.get("init_lvl"), None)
-    
-    if init_lvl is None:
-        store = matchdict.get("store")
-        init_lvl = 0
-    else:
-        store = matchdict.get("init_store")
-
-    # now build the appropriate object
-    return init_lvl, store
-
-
 def st_colon(text):
     """
     Strips colons from text
@@ -414,6 +375,18 @@ def st_colon(text):
     RETURNS: stripped text
     """
     return text.strip(":")
+
+
+def sw_imp(line):
+    """
+    Checks if the given line starts with import keywords
+
+    IN:
+        line - line to check
+
+    RETURNS: True if import keywords start the line, False if not
+    """
+    return line.startswith(IMP_STR) or line.startswith(IMP_F_STR)
 
 
 def sw_tq(line):
@@ -567,26 +540,7 @@ class DocContainer(object):
 
         IN:
             line - line to parse
-
-        RETURNS: object-specific data, or None if invalid data
-        """
-        return None
-
-    @staticmethod
-    def oparse_tokens(tokens):
-        """
-        Parses a line and determines if its an opener for this object and
-        converts it to object=-specific data if so.
-        Object-specific data depends on the extended classes.
-
-        An opener means the line can be parsed as a valid object, but we may
-        not have all the info required to parse into an object.
-        The Object-specific data may contain only partial data as a result.
-
-        Should be implemented by extended classes if it needs it
-
-        IN:
-            tokens - list of tokens to parse
+                Assumed to be trimmed
 
         RETURNS: object-specific data, or None if invalid data
         """
@@ -604,22 +558,6 @@ class DocContainer(object):
             line - line to parse
 
         RETURNS: object-specific data, or None if invalid data.
-        """
-        # TODO: dont actually do this yet
-        return None
-
-    @staticmethod
-    def parse_tokens(tokens):
-        """
-        Parses tokens into obj-specific data
-        Object-specific data depends on the extended classes
-
-        Should be implemented by extended classes if it needs it
-
-        IN:
-            tokens - list of tokens to parse
-
-        RETURNS: object-specific data, or None if invalid data
         """
         # TODO: dont actually do this yet
         return None
@@ -785,27 +723,17 @@ class DocFunction(DocObject):
             [0] - name of the function
             or None if no data
         """
-        return DocFunction.oparse_tokens(line.split())
-
-    @staticmethod
-    def oparse_tokens(tokens):
-        """
-        SEE DocContainer.oparse_tokens
-
-        RETURNS: tuple:
-            [0] - name of the function
-            or None if no data
-        """
-        # must always have def keyword
-        if tokens[0] != KW_DEF:
+        matches = RE_FUNC.match(line)
+        if matches is None:
             return None
 
-        # must have at least two tokens to be valid
-        if len(tokens) < 2:
+        tokens = matches.groups()
+
+        # check for valid name
+        if tokens[0] is None:
             return None
 
-        # second token is the function name
-        return (tokens[1],)
+        return (tokens[0],)
 
 
 class DocClass(DocObject):
@@ -858,46 +786,18 @@ class DocClass(DocObject):
             [0] - name of the class
             [1] - name of base class, or None if no base class
         """
-        return DocClass.oparse_tokens(line.split())
-
-    @staticmethod
-    def oparse_tokens(tokens):
-        """
-        SEE DocContainer.oparse_tokens
-
-        RETURNS: tuple:
-            [0] - name of the class
-            [1] - name of base class, or None if no base class
-        """
-        # must always start with class
-        if tokens[0] != KW_CLASS:
+        matches = RE_CLASS.match(line)
+        if matches is None:
             return None
 
-        # must have at least two tokens to be valid
-        if len(tokens) < 2:
-            return None
+        tokens = matches.groups()
+        clsname, basecls = tokens
 
-        # second token should have an open paren
-        clsname, oparen, base_wclose = tokens[1].partition(OB_POPEN)
-        if len(oparen) < 1:
-            return None
+        # validate base class
+        if len(basecls) < 1:
+            basecls = None
 
-        # class name should exist
-        if len(clsname) < 1:
-            return None
-
-        # now split the base part with close paren
-        # NOTE: we dont care about the ending colon, that is handled out of
-        # here
-        basename, cparen, cln = base_wclose.partition(OB_PCLOSE)
-        if len(cparen) < 1:
-            return None
-
-        # check if base name exist
-        if len(basename) < 1:
-            basename = None
-
-        return (clsname, basename)
+        return clsname, basecls
 
 
 class DocStoreLevel(DocObject):
@@ -919,6 +819,34 @@ class DocStoreLevel(DocObject):
         """
         super(DocStoreLevel, self).__init__(name, raw_docstring, container)
         self.init_lvl = init_lvl
+
+    @staticmethod
+    def oparse_line(line):
+        """
+        SEE DocContainer.oparse_line
+
+        RETURNS: tuple:
+            [0] - init lvl
+            [1] - store name
+            or None if not an init line
+        """
+        matches = RE_STORE.match(line)
+        if matches is None:
+            return None
+
+        matchdict = matches.groupdict(SM_GLOBAL)
+
+        # take out init and stores
+        init_lvl = utils.tryparseint(matchdict.get("init_lvl"), None)
+        
+        if init_lvl is None:
+            store = matchdict.get("store")
+            init_lvl = 0
+        else:
+            store = matchdict.get("init_store")
+
+        # now build the appropriate object
+        return init_lvl, store
 
 
 class DocStore(DocContainer):
@@ -1006,6 +934,15 @@ class DocEarly(DocObject):
         """
         super(DocEarly, self).__init__(KW_EARLY, raw_docstring, container)
 
+    @staticmethod
+    def oparse_line(line):
+        """
+        SEE DocContainer.oparse_line
+
+        RETURNS: True if pyearly, False if not
+        """
+        return RE_PYEARLY.match(line) is not None
+
 
 class DocRPY(DocContainer):
     """
@@ -1067,6 +1004,23 @@ class DocLabel(DocObject):
         None
     """
 
+    @staticmethod
+    def oparse_line(line):
+        """
+        SEE DocContainer.oparse_line
+
+        RETURNS: tuple:
+            [0] - label name
+            or None if not a label line
+        """
+        matches = RE_LABEL.match(line)
+        if matches is None:
+            return None
+
+        tokens = matches.groups()
+
+        return (tokens[0],)
+
 
 class DocScreen(DocObject):
     """
@@ -1075,6 +1029,23 @@ class DocScreen(DocObject):
     ADDITIONAL PROPERTIES
         None
     """
+
+    @staticmethod
+    def oparse_line(line):
+        """
+        SEE DocContainer.oparse_line
+
+        RETURNS: tuple:
+            [0] - screen name
+            or None if not a screen line
+        """
+        matches = RE.SCREEN.match(line)
+        if matches is None:
+            return NOne
+
+        tokens = matches.groups()
+
+        return (tokens[0],)
 
 
 # combined doc objects
