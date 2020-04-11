@@ -30,7 +30,7 @@ OB_PCLOSE = ")"
 OB_PCCLOSE = "):"
 
 # setup regexes
-RE_CLASS = re.compile("class ([\w]+)\(([\w]*)\):")
+RE_CLASS = re.compile("class ([\w]+)\((?:[\w.]+\.)?([\w]*)\)")
 RE_FIMPORT = re.compile("from ([\w]+) import (.+)")
 RE_FIMPORT_A = re.compile("([\w]+)(?: as ([\w]+))?")
 RE_FUNC = re.compile("def ([\w]+)\(")
@@ -481,6 +481,12 @@ class DocContainer(object):
         """
         return self.children.itervalues()
 
+    def __str__(self):
+        """
+        STring rep is the name
+        """
+        return self.name
+
     def add_child(self, child):
         """
         Adds the given object as a child
@@ -513,6 +519,20 @@ class DocContainer(object):
 
             for used_name, mod_name, real_name in import_data:
                 self.imports[used_name] = (mod_name, real_name)
+
+    def count_children(self, child_type):
+        """
+        Counts the number of children of a specific type/instance
+
+        IN:
+            child_type - class type to count
+        """
+        count = 0
+        for child in self:
+            if isinstance(child, child_type):
+                count += 1
+
+        return count
 
     def get_child(self, child_name, defval=None):
         """
@@ -688,7 +708,7 @@ class DocObject(DocContainer):
 
             return
 
-        if name.startswith("_"):
+        if self.name.startswith("_"):
             # internal function
             self.internal = True
 
@@ -799,6 +819,29 @@ class DocClass(DocObject):
 
         return clsname, basecls
 
+    def stats(self):
+        """
+        Counts general stats about this class
+
+        RETURNS: tuple:
+            [0] - number of imports
+            [1] - number of public functions in class
+            [2] - number of internal functions in class
+            [3] - number of private functions in class
+            [4] - number of built in overrides in class
+            [5] - number of public static functions
+            [6] - number of internal static functions
+            [7] - number of private static functions
+            [8] - numbre of public class functions
+            [9] - number of internal class functions
+            [10] - number of private class functions
+        """
+        # keep track of counts
+        counts = [0] * 10
+        counts[0] = len(self.imports)
+
+
+
 
 class DocStoreLevel(DocObject):
     """
@@ -896,7 +939,8 @@ class DocStore(DocContainer):
             doc_sl = DocStoreLevel(
                 self.name + "_" + str(init_lvl),
                 raw_docstring,
-                self
+                self,
+                init_lvl
             )
             self.levels[init_lvl] = doc_sl
             self.add_child(doc_sl)
@@ -1039,9 +1083,9 @@ class DocScreen(DocObject):
             [0] - screen name
             or None if not a screen line
         """
-        matches = RE.SCREEN.match(line)
+        matches = RE_SCREEN.match(line)
         if matches is None:
-            return NOne
+            return None
 
         tokens = matches.groups()
 
@@ -1072,6 +1116,12 @@ class CombinedDocContainer(DocContainer):
         super(CombinedDocContainer, self).__init__(name, container)
         self.refs = []
 
+    def __len__(self):
+        """
+        Length here is the number of refs
+        """
+        return len(self.refs)
+
     def add_ref(self, source):
         """
         Adds the given source as a reference to this combined object
@@ -1100,6 +1150,34 @@ class CombinedDocContainer(DocContainer):
         NOTE: extending classes shoudl implement this
         """
         raise NotImplementedError
+
+    def stats(self):
+        """
+        Counts general stats about this combined doc object
+
+        RETURNS: tuple:
+            [0] - number of classes
+            [1] - number of total functions
+            [2] - number of store functions
+            [3] - number of class functions
+        """
+        counts = [0] * 4
+
+        for s_child in self:
+            if isinstance(s_child, DocFunction):
+                counts[1] += 1
+                counts[2] += 1
+
+            elif isinstance(s_child, DocClass):
+                counts[0] += 1
+
+                for c_child in s_child:
+
+                    if isinstance(c_child, DocFunction):
+                        counts[1] += 1
+                        counts[3] += 1
+
+        return tuple(counts)
 
 
 class CombinedDocStore(CombinedDocContainer):
@@ -1231,3 +1309,67 @@ class Documentation(object):
         self.files.clear()
         self.stores.clear()
         self.early = CombinedDocEarly(None)
+
+    def combine(self):
+        """
+        Combines all internal combinable objects
+        """
+        for cds in self.stores.itervalues():
+            cds.combine()
+            cds.combine_imports()
+
+        self.early.combine()
+        self.early.combine_imports()
+
+    def iter_rpy(self):
+        """
+        Yields each DocRPY
+
+        RETURNS: iterator over docRPY 
+        """
+        return self.files.itervalues()
+
+    def iter_store(self):
+        """
+        Yields each CombinedDocStore
+        """
+        return self.stores.itervalues()
+
+    def stats(self):
+        """
+        Counts general stats about this documentation
+
+        RETURNS: tuple:
+            [0] - number of files
+            [1] - number of stores (include early)
+            [2] - number of labels
+            [3] - number of screens 
+            [4] - number of classes
+            [5] - number of total functions
+            [6] - number of store functions
+            [7] - number of class functions
+        """
+        # setup counts
+        counts = [0] * 8
+        counts[0] = len(self.files)
+        counts[1] = len(self.stores) + int(bool(len(self.early)))
+
+        # count labels
+        for drpy in self.iter_rpy():
+            counts[2] += drpy.count_children(DocLabel)
+
+        # count screens
+        for drpy in self.iter_rpy():
+            counts[3] += drpy.count_children(DocScreen)
+
+        # coutn classes and functions
+        for cds in self.iter_store():
+            cds_ct = cds.stats()
+            for index in range(4):
+                counts[index+4] += cds_ct[index]
+
+        cds_ct = self.early.stats()
+        for index in range(4):
+            counts[index+4] += cds_ct[index]
+
+        return tuple(counts)

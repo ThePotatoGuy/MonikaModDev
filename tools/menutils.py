@@ -201,11 +201,11 @@ def paginate(title, items, per_page=20, str_func=str, select=False):
             item = items_to_show[index]
             if select:
                 print(MENU_ENTRY.format(
-                    items_to_show + 1,
+                    index + 1,
                     str_func(item),
                     " ",
                     ")"
-                ))_
+                ))
             else:
                 print(PAGE_ENTRY.format(str_func(item)))
 
@@ -238,7 +238,7 @@ def paginate(title, items, per_page=20, str_func=str, select=False):
             # check if select mode is enabled and the user entered a number
             if select:
                 sel_num = utils.tryparseint(user_input, -1)
-                if 0 < sel_num <= len(items_to_snow):
+                if 0 < sel_num <= len(items_to_show):
                     return items_to_show[sel_num-1]
 
             # otherwise, we do a default action

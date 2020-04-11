@@ -2,11 +2,14 @@
 
 from __future__ import print_function
 
+import string
+
 import docobject 
 from docobject import DocFunction, DocClass, DocStoreLevel, DocStore, DocRPY,\
         DocEarly, DocLabel, DocScreen, Documentation
 
 import filestructure as fst
+import menutils
 
 
 # the documentation object we use
@@ -50,6 +53,12 @@ PARSE_DONE = 2 ** 9
 
 PARSE_MLN = 2 ** 10
 # set when are building a single line out of multiple lines
+
+PARSE_MOD_SM = 2 ** 11
+# set when we found a staticmethod modifie
+
+PARSE_MOD_CM = 2 ** 12
+# set when we find a class method modifier
 
 def add_state(st, stadd):
     """
@@ -145,6 +154,11 @@ class RPYFileParser(object):
         self.pst_ds = []
         # list of docstringables after an object
 
+        self.debug = True
+        # set to True to print debug output to file
+
+        self._d2f = None
+
     def add_pre(self, line):
         """
         Adds the given line to the pre ds list
@@ -200,6 +214,12 @@ class RPYFileParser(object):
             self.obj_data[1]
         )
         self.cr_sl.add_child(self.cr_cls)
+        
+        if self.debug:
+            self.__debug_write("Class {0} created in {1}".format(
+                self.obj_data[0],
+                self.cr_sl
+            ))
 
         # cleanup
         self.clear_ds()
@@ -211,8 +231,11 @@ class RPYFileParser(object):
         Creates a DocEarly object
         """
         # build/get docearly
-        self.cr_sl = DocEarly(self.dsuse(), docobj)
-        docobj.add_child(self.cr_sl)
+        self.cr_sl = DocEarly(self.dsuse(), self.data)
+        self.data.add_child(self.cr_sl)
+
+        if self.debug:
+            self.__debug_write("early created")
 
         # cleanup
         self.clear_ds()
@@ -226,10 +249,16 @@ class RPYFileParser(object):
             as object data as appropriate
         """
         # build/get docstore
-        docstore = docobj.create_store(self.obj_data[1])
+        docstore = self.data.create_store(self.obj_data[1])
 
         # create the store level and set
         self.cr_sl = docstore.create_storelvl(self.obj_data[0], self.dsuse())
+
+        if self.debug:
+            self.__debug_write("Store {0} at lvl {1} created".format(
+                self.obj_data[1],
+                self.obj_data[0]
+            ))
 
         # cleanup
         self.clear_ds()
@@ -247,8 +276,23 @@ class RPYFileParser(object):
             cnt = self.cr_cls
 
         # build and set obj
-        self.cr_fun = DocFunction(self.obj_data[0], self.ds_use(), cnt)
+        self.cr_fun = DocFunction(self.obj_data[0], self.dsuse(), cnt)
         cnt.add_child(self.cr_fun)
+
+        if self.debug:
+            self.__debug_write("Function {0} created in {1}".format(
+                self.obj_data[0],
+                cnt
+            ))
+
+        # set class/static vars
+        if self._st_in(PARSE_MOD_SM):
+            self.cr_fun.static_m = True
+            self._st_rm(PARSE_MOD_SM)
+
+        elif self._st_in(PARSE_MOD_CM):
+            self.cr_fun.class_m = True
+            self._st_rm(PARSE_MOD_CM)
 
         # cleanup
         self.clear_ds()
@@ -278,7 +322,7 @@ class RPYFileParser(object):
         # clear object state
         self._st_rm(PARSE_OBJECT)
 
-    def _cr_pre_cdr(self, doc_cls, name):
+    def _cr_pre_cdr(self, doc_cls, name, req_pre_ds):
         """
         CReates a doc object using the
         PRE docstring list and setting the
@@ -290,9 +334,18 @@ class RPYFileParser(object):
         IN:
             doc_cls - the class of DocObject to create
             name - the name of the doc object to create
+            req_pre_ds - True will require that pre_ds is populated before
+                creation. False will not create the object if pre_ds is empty
         """
-        self.data.add_child(doc_cls(name, self.pre_ds, self.data))
+        if not req_pre_ds or len(self.pre_ds) > 0:
+            self.data.add_child(doc_cls(name, self.pre_ds, self.data))
         self.clear_pre_ds()
+
+    def __debug_write(self, msg):
+        """
+        Writes to debug log
+        """
+        self._d2f.write(_DEBUG_NORM.format(msg))
 
     def dindent(self):
         """
@@ -354,6 +407,16 @@ class RPYFileParser(object):
         self.fileobj.seek(0)
         self.data = DocRPY(filename, None)
         self.state = PARSE_NORMAL
+        self.cr_sl = None
+        self.cr_cls = None
+        self.cr_fun = None
+        self.exp_ws = 0
+        self.obj_data = None
+        self.pre_ds = []
+        self.pst_ds = []
+
+        if self.debug:
+            self._d2f = open("parser_log", "w")
 
     def parse(self):
         """
@@ -363,7 +426,7 @@ class RPYFileParser(object):
         Call self.getdocrpy to retrieve the created object
         """
         # must call prepare before starting
-        if self.state == 0:
+        if not self._st_in(PARSE_NORMAL):
             return
 
         combo_line = []
@@ -380,6 +443,17 @@ class RPYFileParser(object):
             lnw = r_line.strip()
             # and tokens
             tokens = r_line.split()
+
+            if self.debug:
+                self._d2f.write(_DEBUG_LINE.format(
+                    self.state,
+                    len(self.pre_ds),
+                    len(self.pst_ds),
+                    self.cr_sl,
+                    self.cr_cls,
+                    self.cr_fun,
+                    r_line.rstrip("\r\n")
+                ))
 
             # first check for comments
             if self._st_in(PARSE_TQ):
@@ -437,6 +511,12 @@ class RPYFileParser(object):
 
                 self._parse_ntq(line, lnw, tokens, curr_ws)
 
+        # once we are done, set the done state
+        # NOTE: we assume we dont end on a middle state
+        self._st_add(PARSE_DONE)
+        if self._d2f is not None:
+            self._d2f.close()
+
     def _parse_ac(self, line, lnw, cws):
         """
         Parses things as code
@@ -451,7 +531,7 @@ class RPYFileParser(object):
             # this means we probably are in code and should check for
             # a closing
 
-            if docobject.ew_pcln(line):
+            if docobject.ew_pcln(lnw):
                 # NOTE: end paren and colon should always end an open
                 #   object and should always be on its own line
                 self._st_rm(PARSE_OBJECT_OP)
@@ -463,6 +543,16 @@ class RPYFileParser(object):
         if self._st_in(PARSE_OBJECT):
             self._cr_obj()
 
+        # check for @ symbols
+        if lnw.startswith("@"):
+
+            if lnw.startswith("@staticmethod"):
+                self._st_add(PARSE_MOD_SM)
+            elif lnw.startswith("@classmethod"):
+                self._st_add(PARSE_MOD_CM)
+
+            return
+
         # then parse code
 
         # first compare ws
@@ -470,23 +560,33 @@ class RPYFileParser(object):
             # if the current whitespace is less than expected, it
             # means we've left the current indent level.
             # In this case, we need to clear objects based on indent lvl
+            if self.debug:
+                self.__debug_write("ws mismatch: {0} - {1}".format(
+                    cws, self.exp_ws
+                ))
 
             # clear out function if we have it
             if self.cr_fun is not None:
                 self.cr_fun = None
                 self.dindent()
+                if self.debug:
+                    self.__debug_write("fun reset")
 
             # if still more ws than expected, clear out cls if have it
             if cws < self.exp_ws:
                 if self.cr_cls is not None:
                     self.cr_cls = None
                     self.dindent()
+                    if self.debug:
+                        self.__debug_write("cls reset")
 
             # if still more ws than expected, clear out sl if have it
             if cws < self.exp_ws:
                 if self.cr_sl is not None:
                     self.cr_sl = None
                     self.dindent()
+                    if self.debug:
+                        self.__debug_write("sl reset")
 
             # at this point we MUST be at the correct indent level
 
@@ -548,7 +648,7 @@ class RPYFileParser(object):
             tokens - list of tokens
             cws - current white space
         """
-        if tokens[0].startswith(docobject.LC_HASH):
+        if lnw.startswith(docobject.LC_HASH):
             # is the first non whitespace a hash comment character
             # NOTE: must be checked before triple quote start checking
 
@@ -556,11 +656,11 @@ class RPYFileParser(object):
                 # always ignore things if we are parsing an open object
 
                 # this a comment so add to appropriate lsit
-                if self._st_in(PARSE_NORMAL):
-                    self.add_pre(line)
-
-                elif self._st_in(PARSE_OBJECT):
+                if self._st_in(PARSE_OBJECT):
                     self.add_pst(line)
+
+                elif self._st_in(PARSE_NORMAL):
+                    self.add_pre(line)
 
         elif docobject.LC_TQ in line:
             # we found a triple quote, which means we are now in tq comment
@@ -571,14 +671,14 @@ class RPYFileParser(object):
             # however we must check that its a docstring before parsing as
             # a docstring
             if (
-                    docobject.sw_tq(tokens[0])
+                    docobject.sw_tq(lnw)
                     and not self._st_in(PARSE_OBJECT_OP)
             ):
-                if self._st_in(PARSE_NORMAL):
-                    self.add_pre(line)
-
-                elif self._st_in(PARSE_OBJECT):
+                if self._st_in(PARSE_OBJECT):
                     self.add_pst(line)
+
+                elif self._st_in(PARSE_NORMAL):
+                    self.add_pre(line)
 
             else:
                 # otherwise is a tq but not a valid one for docstrings
@@ -589,7 +689,18 @@ class RPYFileParser(object):
             # if we have actual text to deal with
 
             # parse as code
-            self._parse_ac(ilne, lnw, cws)
+            self._parse_ac(line, lnw, cws)
+
+        else:
+            # blank line encountered. Clear all ds unless in open object
+            if not self._st_in(PARSE_OBJECT_OP):
+
+                # unless we are building an object
+                if self._st_in(PARSE_OBJECT):
+                    self._cr_obj()
+
+                else:
+                    self.clear_ds()
 
     def _parse_sl_lvl(self, line, lnw):
         """
@@ -658,7 +769,7 @@ class RPYFileParser(object):
             # we have a label. Labels cannot have documentation
             # post the label, so instead we will build the
             # object now and add
-            self._cr_pre_cdr(DocLabel, data[0])
+            self._cr_pre_cdr(DocLabel, data[0], True)
             return
 
         # check for screen
@@ -666,7 +777,7 @@ class RPYFileParser(object):
         if data is not None:
             # we have a screen. Screens cannot have docs
             # post the label, so instead we build obj
-            self._cr_pre_cdr(DocScreen, data[0])
+            self._cr_pre_cdr(DocScreen, data[0], True)
 
     def _st_add(self, stadd):
         """
@@ -675,7 +786,7 @@ class RPYFileParser(object):
         IN:
             stadd - state to add
         """
-        add_state(self.state, stadd)
+        self.state = add_state(self.state, stadd)
 
     def _st_in(self, stcmp):
         """
@@ -695,7 +806,7 @@ class RPYFileParser(object):
         IN:
             strm - state to remove
         """
-        rm_state(self.state, strm)
+        self.state = rm_state(self.state, strm)
 
     def _try_parse_func(self, lnw):
         """
@@ -740,6 +851,64 @@ class RPYFileParser(object):
         return False
 
 
+# ux based functions
+
+
+def _parse_project(parser, project_files):
+    """
+    Parses entire proejct and stores in docs
+
+    IN:
+        parser - parser to use
+        project_files - list of project files as tuples
+            [0] - filename
+            [1] - filepath
+    """
+    for fname, fpath in project_files:
+        _parse_single(parser, fname, fpath)
+
+
+def _parse_single(parser, fname, fpath):
+    """
+    Parses a single file. Adds to the global docs object
+
+    IN:
+        parser - the RPY file parser to use
+        fname - filename to parse
+        fpath - filepath to parse
+    """
+    print(_PARSE_FILE_START.format(fname), end="")
+
+    # and parse
+    with open(fpath, "r") as fileobj:
+        parser.prepare(fileobj, fname)
+        parser.parse()
+
+    # pull out docrpy
+    docrpy = parser.getdocrpy()
+    if docrpy is None:
+        print(_PARSE_FILE_FAIL)
+        return
+
+    # add to docs and finish
+    docs.add_file(docrpy)
+    print(_PARSE_FILE_END)
+
+
+def _docs_not_empty_quit():
+    """
+    Warns users the docs is not empty and prompt for continue
+
+    RETURNS: True if user decides to quit, False if not
+    """
+    if len(docs) > 0:
+        print(_PARSE_DOCS_NON_EMPTY)
+        return not menutils.ask(_PARSE_DOCS_NON_EMPTY_Q)
+
+    # default false if docs is empty
+    return False
+
+
 # runners
 
 def run():
@@ -758,6 +927,12 @@ def run_pf():
     """
     Parses a single file
     """
+    if _docs_not_empty_quit():
+        return
+
+    # valid docrpy, add to documentation
+    docs.clear()
+
     # get files to show to the user
     files = sorted(fst.get_project_files(), key=fst.to_paginate_sk)
 
@@ -772,28 +947,35 @@ def run_pf():
     if selected_file is None:
         return
 
+    menutils.clear_screen()
+
     # otherwise we now have a file
     fname, fpath = selected_file
-    print(_PARSE_FILE_START.format(fname), end="")
+    _parse_single(RPYFileParser(), fname, fpath)
 
-    # build the file parser object
-    parser = RPYFileParser()
+    # then combine appropraite doc files
+    docs.combine()
 
-    # and parse
-    with open(fpath, "r") as fileobj:
-        parser.prepare(fileobj, fname)
-        parser.parse()
-
-    # pull out docrpy
-    docrpy = parser.getdocrpy()
-    if docrpy is None:
-        # TODO: show fail
-        pass
+    menutils.e_pause()
 
 
+def run_pp():
+    """
+    Parses entire proejct
+    """
+    menutils.clear_screen()
 
+    # prompt if not empty
+    if _docs_not_empty_quit():
+        return
 
+    # get all files and run
+    _parse_project(RPYFileParser(), fst.get_project_files())
 
+    # then combine the appropriate doc files
+    docs.combine()
+
+    menutils.e_pause()
 
 
 # strings
@@ -801,12 +983,22 @@ _PARSE_FILE_START = "Parsing file {0}.rpy..."
 _PARSE_FILE_FAIL = "Error parsing file!"
 _PARSE_FILE_END = "DONE"
 
+_PARSE_DOCS_NON_EMPTY = (
+    "WARNING! Parsed data exists. Cannot parse new data unless data is "
+    "cleared."
+)
+_PARSE_DOCS_NON_EMPTY_Q = "Clear existing data"
+
+_DEBUG_LINE = """\
+{6: <120} | ST {0} | {1}-{2} | {3} ~ {4} ~ {5}
+"""
+_DEBUG_NORM = (" " * 120) + " | {0}\n"
+
 
 ############ menus #########
 
 menu_main = [
     ("Doc Parser", "Option: "),
-    ("Parse File", 1), # TODO
-    ("Parse Project", 2), # TODO
-    ("View Parsed Data", 3), # TODO
+    ("Parse File", run_pf),
+    ("Parse Project", run_pp),
 ]

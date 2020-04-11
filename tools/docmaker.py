@@ -1,6 +1,7 @@
 # doc writer main menus
 
 import docparser as dp
+import docviewer as dv
 import menutils
 
 # runnners
@@ -9,7 +10,6 @@ import menutils
 def run():
     choice = True
     while choice is not None:
-        # TODO: set menu text
 
         choice = menutils.menu(menu_main)
 
@@ -23,4 +23,5 @@ def run():
 menu_main = [
     ("Documentation Maker", "Option: "),
     ("Parse Code", dp.run),
+    ("View Parsed Code", dv.run),
 ]
