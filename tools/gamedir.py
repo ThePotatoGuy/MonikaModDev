@@ -4,3 +4,5 @@
 
 REL_PATH_GAME = "../Monika After Story/game/"
 REL_PATH_DEV = "../Monika After Story/game/dev/"
+
+EXT_RPY = ".rpy"

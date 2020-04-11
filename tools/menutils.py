@@ -15,6 +15,7 @@
 
 import os
 import platform
+import utils
 
 HEADER = """\n\n\
 #=============================================================================#
@@ -134,7 +135,7 @@ def menu(menu_opts, defindex=None):
             pass
 
 
-def paginate(title, items, per_page=20, str_func=str):
+def paginate(title, items, per_page=20, str_func=str, select=False):
     """
     Paginates a list of items. Each item is shown with a tab 4 indent.
     Also runs the paginatation. This returns when the user hits q (quit)
@@ -147,6 +148,12 @@ def paginate(title, items, per_page=20, str_func=str):
             (Default: 20)
         str_func - function to use to convert an item into a string
             (Default: str)
+        select - pass True to enable selection off pagination
+            (Default: False)
+
+    RETURNS: if select is True, then returns selected value (the item
+        itself), or None if no selection.
+        Otherwise, returns None
     """
     if len(items) < 1:
         # if there are no items, to show, mention this and then abort
@@ -154,7 +161,7 @@ def paginate(title, items, per_page=20, str_func=str):
         print(header(title))
         print("\nThere are no items to show.\n")
         e_pause()
-        return
+        return None
 
     def restrict(page_value):
         return max(10, min(page_value, 50))
@@ -190,15 +197,24 @@ def paginate(title, items, per_page=20, str_func=str):
         print(header(title + PAGE_PROG.format(page+1, last_page+1)))
 
         # items
-        for item in items_to_show:
-            print(PAGE_ENTRY.format(str_func(item)))
+        for index in range(len(items_to_show)):
+            item = items_to_show[index]
+            if select:
+                print(MENU_ENTRY.format(
+                    items_to_show + 1,
+                    str_func(item),
+                    " ",
+                    ")"
+                ))_
+            else:
+                print(PAGE_ENTRY.format(str_func(item)))
 
         # action string and user input
         user_input = raw_input(PAGE_BAR.join(action_bar)).lower()
 
         # process user input
         if user_input == __QUIT:
-            return
+            return None
 
         elif user_input == __PREV:
             if page > 0:
@@ -218,6 +234,13 @@ def paginate(title, items, per_page=20, str_func=str):
                 pass
 
         else:
+
+            # check if select mode is enabled and the user entered a number
+            if select:
+                sel_num = utils.tryparseint(user_input, -1)
+                if 0 < sel_num <= len(items_to_snow):
+                    return items_to_show[sel_num-1]
+
             # otherwise, we do a default action
             if page < last_page:
                 # default to next page
@@ -225,7 +248,7 @@ def paginate(title, items, per_page=20, str_func=str):
             
             else:
                 # otherwise, quit
-                return
+                return None
 
 def ask(question, def_no=True):
     """

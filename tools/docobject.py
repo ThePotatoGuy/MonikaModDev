@@ -235,7 +235,7 @@ def has_ucp_t(tokens):
         for char in token:
             paren_counter += paren_dc.get(char, 0)
 
-    return paren_counter > 0:
+    return paren_counter > 0
 
 
 def is_aliased_import(ikey, ival):
@@ -511,7 +511,7 @@ class DocContainer(object):
             if import_data is None:
                 return
 
-            for used_name, mod_name, real_name in import_data
+            for used_name, mod_name, real_name in import_data:
                 self.imports[used_name] = (mod_name, real_name)
 
     def get_child(self, child_name, defval=None):
@@ -1193,6 +1193,12 @@ class Documentation(object):
         self.files = {}
         self.stores = {}
         self.early = CombinedDocEarly(None)
+
+    def __len__(self):
+        """
+        Length is defined by having files
+        """
+        return len(self.files)
 
     def add_file(self, docrpy):
         """

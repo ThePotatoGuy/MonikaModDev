@@ -16,14 +16,22 @@ import spritepuller as spp
 import spritechecker as spc
 import spritemaker as spm
 import testsgenerator as tg
+import docmaker as dm
+import filestructure as fst
 import menutils
+
+# load file structure
+fst.run_rb(True)
+print("\n")
 
 menu_main = [
     ("MAS Dev Tools", "Utility: "),
+    ("File Management", fst.run),
     ("Sprite Puller", spp.run),
     ("Check Sprites", spc.run),
     ("Make Sprites", spm.run),
-    ("Generate Expressions Test", tg.run)
+    ("Generate Expressions Test", tg.run),
+    ("Make Documentation", dm.run),
 ]
 
 choice = True
