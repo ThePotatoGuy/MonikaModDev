@@ -237,12 +237,6 @@
 #       - boolean
 #       - locked items will show the locked item thumbnail
 #       - default True
-#   "hover_dlg": [List of text to show when mouse is hovered over this in 
-#       selector],
-#       - optional
-#       - list of strings
-#       - lines are picked randomly when hovered
-#       - default None
 #   "select_dlg": [List of text to show when this item is selected in the
 #       selector],
 #       - optional
