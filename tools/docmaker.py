@@ -2,6 +2,8 @@
 
 import docparser as dp
 import docviewer as dv
+import docwriter as dw
+
 import menutils
 
 # runnners
@@ -17,6 +19,11 @@ def run():
             choice()
 
 
+def run_dw():
+    """
+    Write documentation menu
+    """
+
 
 ############## menus ################
 
@@ -24,4 +31,11 @@ menu_main = [
     ("Documentation Maker", "Option: "),
     ("Parse Code", dp.run),
     ("View Parsed Code", dv.run),
+    ("Write Documentation", run_dw),
+]
+
+menu_write = [
+    ("Select Documentation Type", "Type: "),
+    ("MD (Markdown)", dw.md.run),
+    #("HTML", 2),
 ]
