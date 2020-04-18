@@ -27,6 +27,8 @@
 #       docstring
 #       ```
 #
+#       TOC with functions
+#
 # Functions:
 #   Function Name
 #       ?**DEPRECATED**
@@ -40,10 +42,47 @@
 #       ```
 #       docstring
 #       ```
-#       
-#       
-#       
-
+#
+# Store Levels:
+#   `Store Name` (`store level`)
+#       TOC with classes and functions separate
+#
+# OVERALL STRUCTURE
+#
+# BY FILE:
+#   # File
+#   ## Labels
+#   ### Label
+#       <info>
+#   ## Screens
+#   ### Screen
+#       <info>
+#   ## Python Early
+#       <stuff>
+#   ## Store Level
+#   ### Classes
+#   #### Class
+#       <info>
+#   ##### Functions
+#       <info>
+#   ### Store Function
+#       <info>
+#
+# BY STORE:
+#   # Labels
+#   ## Label
+#       <info>
+#   # Screens
+#   ## Screen
+#       <info>
+#   # Python Early
+#   ## Classes
+#   ### functions
+#   ## Functions
+#   # Store Module
+#   ## Classes
+#   ### Functions
+#   ## Functions
 #   
 
 from .. import menutils
@@ -82,18 +121,15 @@ def md_hdr(text, lvl=1):
     IN:
         text - text to headerize
         lvl - the lvl to use
-            1 - header
-            2 - subheader
-            3 - subsubheader
-            Anyother number will default to header
+            Only accepts 1-6
+            Anyother number will default to 
 
     RETURNS: Headerized text
     """
-    if lvl == 3:
-        return _MD_SS_HDR.format(text)
-    if lvl == 2:
-        return _MD_S_HDR.format(text)
-    return _MD_HDR.format(text)
+    if lvl < 1 or 6 < lvl:
+        lvl = 1
+
+    return (_MD_HDR * lvl) + " " + text
 
 
 def md_italic(text):
@@ -128,15 +164,14 @@ def md_table(data):
     NOTE: this is specialized to our purposes and is not comprehensive
 
     IN:
-        data - dictionary:
-            key: Header for the table
-            value: tuple of the following format:
-                [0] - text to show under header
-                [1] - indentation to use 
-                    1 - left
-                    2 - center
-                    3 - right
-                    default is left
+        data - tuple:
+            [0] - header for the table
+            [1] - text to show under header
+            [2] - indentation to use
+                1 - left
+                2 - center
+                3 - right
+                default is left
 
     RETURNS: table text
     """
@@ -226,8 +261,7 @@ _DW_SH_CONTENT = """\
             # Python Early
                 * Items in the python early level
             # Store Module
-                ## Store Module Levels
-                    * Items in Store Module Level
+                * Items in Store Module 
 
         Labels, Screens, and Store Modules will be in alphabetical order.
         The global store will always be the first Store Module.
@@ -236,10 +270,7 @@ _DW_SH_CONTENT = """\
         Items will be in alphabetical order.
 """
 
-
-_MD_HDR = "# {0}\n"
-_MD_S_HDR = "## {0}\n"
-_MD_SS_HDR = "### {0}\n"
+_MD_HDR = "#"
 _MD_B = "**{0}**"
 _MD_I = "_{0}_"
 _MD_C = "`{0}`"

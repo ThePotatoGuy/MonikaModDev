@@ -10,6 +10,7 @@ import menutils
 
 
 def run():
+
     choice = True
     while choice is not None:
 
@@ -23,6 +24,12 @@ def run_dw():
     """
     Write documentation menu
     """
+    # check if docparser docs is filled
+    if len(docparser.docs) < 1:
+        print(_DOC_VIEW_EMPTY)
+        menutils.e_pause()
+        return
+
 
 
 ############## menus ################
