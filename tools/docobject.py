@@ -520,6 +520,14 @@ class DocContainer(object):
             for used_name, mod_name, real_name in import_data:
                 self.imports[used_name] = (mod_name, real_name)
 
+    def cleaned_name(self):
+        """
+        Returns the of this docobject, without underscores
+
+        RETURNS: name of this DocObject, without underscores
+        """
+        return self.name.strip("_")
+
     def count_children(self, child_type):
         """
         Counts the number of children of a specific type/instance
@@ -581,6 +589,16 @@ class DocContainer(object):
         """
         # TODO: dont actually do this yet
         return None
+
+    @staticmethod
+    def sk_cleaned_name(docCont):
+        """
+        Sortkey using the cleand name
+
+        IN:
+            docCont - DocContainer instance to sort
+        """
+        return docCont.cleaned_name()
 
     def update_imports(self, import_data):
         """
@@ -762,6 +780,8 @@ class DocClass(DocObject):
 
     ADDITIONAL PROPERTIES:
         base - name of base class (DocObject name)
+        is_base_ours - True if the base class is something we own, False 
+            if not
     """
 
     def __init__(self, name, raw_docstring, container, base):
@@ -839,8 +859,7 @@ class DocClass(DocObject):
         # keep track of counts
         counts = [0] * 10
         counts[0] = len(self.imports)
-
-
+        # TODO
 
 
 class DocStoreLevel(DocObject):
