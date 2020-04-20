@@ -26,7 +26,7 @@
 #       ```
 #       docstring
 #       ```
-#       list of imports
+#       table of imports
 #       TOC with functions
 #
 #
@@ -45,8 +45,15 @@
 #       ```
 #
 # Store Levels:
-#   `Store Name` (`store level`)
+#   `Store Name`
+#       list of init levels defined at (not used if py early)
+#       table of imports
 #       TOC with classes and functions separate
+#
+# Import Table:
+#   Alias: `the name/alias that is usable as a result of the import`
+#   Source: `the source of this import (full name)`
+#   ?-A (for store only) Imported At: ` the init level this is available from`
 #
 # OVERALL STRUCTURE
 #
@@ -157,6 +164,38 @@ def anc_get(docname, idx=-1):
 
 
 # string functions
+
+
+def build_import_trow(imp, imp_data, init_lvl=None):
+    """
+    Builds an import table row, ready for the imports table
+
+    IN:
+        imp - the import name
+        imp_data - data associated with this import
+        init_lvl - if provided then add a column for the init level
+            (Default: None)
+
+    RETURNS: table row data for an imports line in md table
+    """
+    if imp_data is None:
+        # the import is direct
+        source = imp
+
+    elif isinstance(imp_data, str):
+        # the import is an alias
+        source = imp_data
+
+    else:
+        # the import is a from x import y form
+        source, real_name = imp_data
+        if real_name is not None:
+            source += "." + real_name
+
+    if init_lvl is None:
+        return md_code(imp), md_code(source)
+    
+    return md_code(imp), md_code(source), md_code(init_lvl)
 
 
 def linebreak(lst):
@@ -287,15 +326,9 @@ def md_table(data):
     row_cell = []
 
     for hdr, cell, indent in data:
-        row_hdr.append(_MD_T_H.format(row_hdr))
-        row_cell.append(_MD_T_C.format(row_cell))
-        
-        if indent == 2:
-            row_align.append(_MD_T_D_C)
-        elif indent == 3:
-            row_align.append(_MD_T_D_R)
-        else:
-            row_align.append(_MD_T_D_L)
+        row_hdr.append(_MD_T_H.format(hdr))
+        row_align.append(md_table_align(indent))
+        row_cell.append(_MD_T_C.format(cell))
 
     # add closing pipes
     row_hdr.append("|")
@@ -304,6 +337,71 @@ def md_table(data):
 
     # join everyone together
     return ["".join(row_hdr), "".join(row_align), "".join(row_cell)]
+
+
+def md_table_align(align):
+    """
+    Returns appropritae string to to use for alignment for tables
+
+    IN:
+        align - alignment to use
+            1 - left
+            2 - center
+            3 - right
+            default is left
+
+    RETURNS: alignment string to use for this table
+    """
+    if align == 2:
+        return _MD_T_D_C
+    elif align == 3:
+        return _MD_T_D_R
+    return _MD_T_D_L
+
+
+def md_table_hdr(data):
+    """
+    Makes an MD table header + alignment
+
+    IN:
+        data - list of tuples:
+            [0] - header for a column
+            [1] - alignment for the column
+                1 - left
+                2 - center
+                3 - right
+                default is left
+
+    RETURNS: list of strings to concat with newline to build header of table
+    """
+    if len(data) < 1:
+        return []
+
+    row_hdr = []
+    row_align = []
+
+    for hdr, align in data:
+        row_hdr.append(_MD_T_H.format(hdr))
+        row_align.append(md_table_align(align))
+
+    # add closing pipes
+    row_hdr.append("|")
+    row_align.append("|")
+
+    # join together
+    return ["".join(row_hdr), "".join(row_align)]
+
+
+def md_table_row(data):
+    """
+    Makes an MD table row
+
+    IN:
+        data - tuple/list. Each item is a cell in this row
+
+    RETURNS: row string to use for this table
+    """
+    return "".join([_MD_T_C.format(cell) for cell in data] + ["|"])
 
 
 def newline(line=""):
@@ -346,7 +444,7 @@ def toc_wr(tocbuf, docbuf, hdr, fname, doc, wrfunc, ancname=None):
         link_name = ancname
 
     # write TOC line (anchorized)
-    tocbuf.write(newline(md_bullet(md_link(link_name, anchor), 1)))
+    tocbuf.write(newline(md_bullet(md_link(link_name, anchor), 0)))
 
     # then doc header
     docbuf.write(newline(hdr))
@@ -406,10 +504,32 @@ def wr_class(out, doc, fname):
     for line in md_table(attrs):
         out.write(newline(line))
 
+    # table sep
+    out.write(newline())
+
     # now doc string
     if len(doc.docstring) > 0:
         for line in md_codeblock(doc.docstring):
             out.write(newline(line))
+
+    # imports:
+    if len(doc.imports) > 0:
+        out.write(newline(md_hdr(_MD_H_IMP, 4)))
+        out.write(newline())
+
+        # header
+        hdr = md_table_hdr([
+            (_MD_T_KW_I_A, 1),
+            (_MD_T_KW_I_S, 1),
+        ])
+        for line in hdr:
+            out.write(newline(line))
+
+        # rows
+        for imp, imp_data in doc.imports.iteritems():
+            out.write(newline(md_table_row(build_import_trow(imp, imp_data))))
+
+        out.write(newline())
 
     # now start TOC
     out.write(newline(md_hdr(_MD_H_TOC, 4)))
@@ -455,6 +575,8 @@ def wr_class(out, doc, fname):
     child_out.seek(0)
     for line in child_out:
         out.write(line)
+
+    child_out.close()
 
 
 def wr_function(out, doc, fname):
@@ -538,6 +660,217 @@ def wr_function(out, doc, fname):
     if len(doc.docstring) > 0:
         for line in md_codeblock(doc.docstring):
             out.write(newline(line))
+
+
+def wr_label(out, doc, fname):
+    """
+    Generates md text for a label DocObject
+
+    IN:
+        out - stream object to write to
+        doc - DocLabel object to genreate md text for
+        fname - filename of thie file that contains this docObject
+
+    OUT:
+        out - stream object written to
+    """
+    # start with blank
+    out.write(newline())
+
+    # only attr we have is file
+    for line in md_table([(_md_T_KW_F, md_code(fname), 3)]):
+        out.write(newline(line))
+
+    # table sep 
+    out.write(newline())
+
+    # docstring if any
+    if len(doc.docstring) > 0:
+        for line in md_codeblock(doc.docstring):
+            out.write(newline(line))
+
+
+def wr_labels(out, labels):
+    """
+    Generates md text for a list of Doclabels
+
+    IN:
+        out - stream to write to
+        labels - list of DocLabel objects to write out
+
+    OUT:
+        out - stream having been written to
+    """
+
+
+
+def wr_screen(out, doc, fname):
+    """
+    Generates md text for a screen doc object
+
+    IN:
+        out - stream object to write to
+        doc - DocLabel object to genreate md text for
+        fname - filename of thie file that contains this docObject
+
+    OUT:
+        out - stream object written to
+    """
+    # start with blank
+    out.write(newline())
+
+    # only attr we have is file
+    for line in md_table([(_md_T_KW_F, md_code(fname), 3)]):
+        out.write(newline(line))
+
+    # table sep 
+    out.write(newline())
+
+    # docstring if any
+    if len(doc.docstring) > 0:
+        for line in md_codeblock(doc.docstring):
+            out.write(newline(line))
+
+
+def wr_store(out, doc):
+    """
+    Generates md text for a store/early DocObject
+
+    IN:
+        out - stream object to write to
+        doc - CombinedDocStore/CombinedDocEarly object
+
+    OUT;
+        out - stream object having been written to
+    """
+    is_store = isinstance(doc, docobject.CombinedDocStore)
+
+    # start with blank
+    out.write(newline())
+
+    # defined init lvls
+    if is_store:
+        # only for stores
+        out.write(newline(md_hdr(_MD_H_LVL, 4)))
+        for lvl in doc.init_lvls():
+            out.write(newline(md_bullet(md_code(lvl), 0)))
+
+        out.write(newline())
+
+    # imports
+    if len(doc.imports) > 0:
+        # have imports
+        out.write(newline(md_hdr(_MD_H_IMP, 4)))
+        out.write(newline())
+
+        # header
+        if is_store:
+            hdr = md_table_hdr([
+                (_MD_T_KW_I_A, 1),
+                (_MD_T_KW_I_S, 1),
+                (_MD_T_KW_I_IA, 3),
+            ])
+        else:
+            hdr = md_table_hdr([
+                (_MD_T_KW_I_A, 1),
+                (_MD_T_KW_I_S, 1),
+            ])
+        for line in hdr:
+            out.write(newline(line))
+
+        # rows
+        for imp, imp_data in doc.imports.iteritems():
+            if is_store:
+                row = build_import_trow(imp, imp_data, doc.import_init[imp])
+            else:
+                row = build_import_trow(imp, imp_data)
+            out.write(newline(md_table_row(row)))
+
+        out.write(newline())
+
+    # now start TOC
+    out.write(newline(md_hdr(_MD_H_TOC, 4)))
+
+    # split children into classes and functions
+    cls_objs = []
+    func_objs = []
+    for child in doc:
+        if isinstance(child, docobject.DocClass):
+            cls_objs.append(child)
+        elif isinstance(child, docobject.DocFunction):
+            func_objs.append(child)
+
+    # sort them
+    cls_objs.sort(key=docobject.DocContainer.sk_cleaned_name)
+    func_objs.sort(key=docobject.DocContainer.sk_cleaned_name)
+
+    # same as class when it comes to IO
+    child_out = StringIO()
+
+    # start with classes first
+    for cls in cls_objs:
+        toc_wr(
+            out,
+            child_out,
+            md_hdr(cls.name, 2),
+            cls.get_filename(),
+            cls,
+            wr_class
+        )
+
+    # then functions
+    for func in func_objs:
+        toc_wr(
+            out,
+            child_out,
+            md_hdr(func.name, 2),
+            func.get_filename(),
+            func,
+            wr_function
+        )
+
+    # now seek the child buffer and output to main
+    child_out.seek(0)
+    for line in child_out:
+        out.write(line)
+
+    child_out.close()
+
+
+def wrb_store(out, doc):
+    """
+    Writes md documentation by store
+
+    IN:
+        out - stream to write output to
+        doc - Documentation object
+
+    OUT:
+        out - stream having been written to
+    """
+    # start with auto-generated message
+    out.write(newline(_MD_AG))
+    out.write(newline())
+    out.write(newline())
+
+    # TOC
+    out.write(newline(md_hidr(_MD_H_TOC, 4)))
+
+    # start with labels and screens
+    labels, screens, ignore = doc.rpy_sort(
+        docobject.DocLabel,
+        docobject.DocScreen
+    )
+
+    # TOC and buffer
+
+    # prepare buffers
+    label_out = StringIO()
+    screens_out = StringIO()
+    pyearly_out = StringIO()
+    store_out = StringIO()
+
+    # split pieces and write
 
 
 # runners
@@ -647,8 +980,12 @@ _MD_T_D_C = _MD_T_D.format(":", ":")
 _MD_T_D_R = _MD_T_D.format(" ", ":")
 
 _MD_H_TOC = "TOC"
-
 _MD_H_CON = "Constructor"
+_MD_H_IMP = "Imports"
+_MD_H_LVL = "Defined Init Levels"
+_MD_H_LBLS = "Labels"
+_MD_H_SCRS = "Screens"
+_MD_H_PYER = "Python Early"
 
 _MD_KW_DEP = "DEPRECATED"
 _MD_T_KW_F = "File"
@@ -669,6 +1006,12 @@ _MD_T_KW_RO = "Runtime only?"
 _MD_T_KW_RO_Y = "Yes"
 
 _MD_T_KW_BC = "Base Class"
+
+_MD_T_KW_I_A = "Alias"
+_MD_T_KW_I_S = "Source"
+_MD_T_KW_I_IA = "Imported At"
+
+_MD_AG = "**This file is auto-generated**"
 
 # menus
 

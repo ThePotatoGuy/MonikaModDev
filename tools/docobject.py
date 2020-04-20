@@ -553,6 +553,20 @@ class DocContainer(object):
         """
         return self.children.get(child_name, defval)
 
+    def get_filename(self):
+        """
+        Recursively moves up containers until a DocRPY file is found
+
+        RETURNS: filename in parent DocRPY, None if cannot find
+        """
+        cur_cnt = self.container
+        while cur_cnt is not None:
+            if isinstance(cur_cnt, DocRPY):
+                return cur_cnt.name
+            cur_cnt = cur_cnt.container
+
+        return None
+
     @staticmethod
     def oparse_line(line):
         """
@@ -919,7 +933,6 @@ class DocStore(DocContainer):
         levels - dict containing other DocObjects based on init level
             key: init level
             value: DocStoreLevel object
-        master - the CombinedDocStore object that
     """
 
     def __init__(self, name, container):
@@ -1204,28 +1217,79 @@ class CombinedDocStore(CombinedDocContainer):
     Combined version of a DocStore
 
     ADDITIONAL PROPERTIES:
-        None
+        import_init - mapping of import keys to the init level they are on
+            key: import key (like imports)
+            value: init level
+        child_init - mapping of children keys to init level they are on
+            key: child name
+            value: init level
     """
+
+    def __init__(self, name, container):
+        """
+        Constructor
+
+        IN:
+            See DocContainer
+        """
+        super(CombinedDocStore, self).__init__(name, container)
+        self.import_init = {}
+        self.child_init = {}
 
     def combine(self):
         """
         See CombinedDocContainer.combine
         """
         self.children.clear()
+        self.child_init.clear()
 
         for doc_store in self.refs:
             for doc_store_lvl in doc_store:
-                self.children.update(doc_store_lvl.children)
+                for child_key in doc_store_lvl.children:
+
+                    # add init lvl mapping if new
+                    if child_key not in self.child_init:
+                        self.child_init[child_key] = doc_store_lvl.init_lvl
+
+                    # then add child to our children
+                    self.children[child_key] = (
+                        doc_store_lvl.children[child_key]
+                    )
 
     def combine_imports(self):
         """
         See CombinedDocContainer.combine_imports
         """
         self.imports.clear()
+        self.import_init.clear()
 
         for doc_store in self.refs:
             for doc_store_lvl in doc_store:
-                self.update_imports(doc_store_lvl.imports)
+                for import_key in doc_store_lvl.imports:
+
+                    # add init lvl mapping if new import
+                    if import_key not in self.import_init:
+                        self.import_init[import_key] = doc_store_lvl.init_lvl
+
+                    # then add import to our imports
+                    self.imports[import_key] = (
+                        doc_store_lvl.imports[import_key]
+                    )
+
+    def init_lvls(self):
+        """
+        Gets all init levels encompassed by this store
+
+        RETURNS: list of sorted init levels defined in this store
+        """
+        levels = {}
+        
+        for doc_store in self.refs:
+            for level in doc_store.levels:
+                if level not in levels:
+                    levels[level] = 1
+
+        return sorted(levels.keys())
 
 
 class CombinedDocEarly(CombinedDocContainer):
@@ -1353,6 +1417,39 @@ class Documentation(object):
         Yields each CombinedDocStore
         """
         return self.stores.itervalues()
+
+    def rpy_sort(self, *objs):
+        """
+        Pulls objects from each rpy and sorts them into lists based on the
+        given object classes
+
+        IN:
+            *objs - Classes to check for. Must be direct children of the RPY
+
+        RETURNS: list where each index corresponds to the object passed in
+            to the args. Values are lists of direct children of the 
+            corresponding type of the RPY. The last item in the main list is 
+            the stuff that didn't match the objs.
+        """
+        if len(objs) < 1:
+            return []
+
+        results = [[]] * (len(objs) + 1)
+
+        for rpy in self.iter_rpy():
+            for child in rpy:
+                stored = False
+                index = 0
+                while not stored:
+                    if isinstance(child, objs[index]):
+                        results[index].append(child)
+                        stored = True
+
+                if not stored:
+                    results[-1].append(child)
+
+        return results
+
 
     def stats(self):
         """
