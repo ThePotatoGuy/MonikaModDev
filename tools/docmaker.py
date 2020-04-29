@@ -25,11 +25,17 @@ def run_dw():
     Write documentation menu
     """
     # check if docparser docs is filled
-    if len(docparser.docs) < 1:
+    if len(dp.docs) < 1:
         print(_DOC_VIEW_EMPTY)
         menutils.e_pause()
         return
 
+    choice = True
+    while choice is not None:
+        choice = menutils.menu(menu_write)
+
+        if choice is not None:
+            choice(dp.docs)
 
 
 ############## menus ################

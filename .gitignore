@@ -9,6 +9,7 @@ traceback.txt
 errors.txt
 parser_log
 firstrun
+api.md
 *.chr
 *.rpa
 *.rpa

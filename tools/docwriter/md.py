@@ -93,12 +93,14 @@
 #   ## Functions
 #   
 
+from __future__ import print_function
+
 from cStringIO import StringIO
 
-from .. import docobject
-from .. import menutils
+import docobject
+import menutils
 
-import txtools
+import docwriter.txtools as txtools
 
 
 # anchor functions
@@ -134,7 +136,7 @@ def anc_add(docname):
 
     else:
         # this a fresh anchor
-        anchor_tbl[docname] = anc_name
+        anchor_tbl[docname] = [anc_name]
 
     return anc_name
 
@@ -572,10 +574,7 @@ def wr_class(out, doc, fname):
             )
 
     # now seek the child buffer to zero and output to main buffer
-    child_out.seek(0)
-    for line in child_out:
-        out.write(line)
-
+    txtools.streamcopy(child_out, out)
     child_out.close()
 
 
@@ -622,7 +621,7 @@ def wr_function(out, doc, fname):
 
         attrs.append((_MD_T_KW_M, md_code(mod_text), 1))
 
-    elif 
+    else:
         # is store/early
         attrs.append((
             _MD_T_KW_SM,
@@ -678,7 +677,7 @@ def wr_label(out, doc, fname):
     out.write(newline())
 
     # only attr we have is file
-    for line in md_table([(_md_T_KW_F, md_code(fname), 3)]):
+    for line in md_table([(_MD_T_KW_F, md_code(fname), 3)]):
         out.write(newline(line))
 
     # table sep 
@@ -690,18 +689,40 @@ def wr_label(out, doc, fname):
             out.write(newline(line))
 
 
-def wr_labels(out, labels):
+def wr_labels(out, labels, lvl):
     """
     Generates md text for a list of Doclabels
 
     IN:
         out - stream to write to
         labels - list of DocLabel objects to write out
+            (assumed to be sorted)
+        lvl - header level to use for each label 
 
     OUT:
         out - stream having been written to
     """
+    # start with blank
+    out.write(newline())
 
+    # start TOC
+    out.write(newline(md_hdr(_MD_H_TOC, 4)))
+
+    # now write each label and toc
+    child_out = StringIO()
+    for lbl in labels:
+        toc_wr(
+            out,
+            child_out,
+            md_hdr(lbl.name, lvl),
+            lbl.get_filename(),
+            lbl,
+            wr_label
+        )
+
+    # transfer output to main
+    txtools.streamcopy(child_out, out)
+    child_out.close()
 
 
 def wr_screen(out, doc, fname):
@@ -720,7 +741,7 @@ def wr_screen(out, doc, fname):
     out.write(newline())
 
     # only attr we have is file
-    for line in md_table([(_md_T_KW_F, md_code(fname), 3)]):
+    for line in md_table([(_MD_T_KW_F, md_code(fname), 3)]):
         out.write(newline(line))
 
     # table sep 
@@ -730,6 +751,42 @@ def wr_screen(out, doc, fname):
     if len(doc.docstring) > 0:
         for line in md_codeblock(doc.docstring):
             out.write(newline(line))
+
+
+def wr_screens(out, screens, lvl):
+    """
+    Generates md text for a list of DocScreens
+
+    IN:
+        out - stream tow rite to
+        screens - list of DocScreen objects to write out
+            (assumed to be sorted)
+        lvl - header level to use for each screen
+
+    OUT:
+        out - stream having been written to
+    """
+    # start with blank
+    out.write(newline())
+
+    # start TOC
+    out.write(newline(md_hdr(_MD_H_TOC, 4)))
+
+    # now write each screen and toc
+    child_out = StringIO()
+    for scrn in screens:
+        toc_wr(
+            out,
+            child_out,
+            md_hdr(scrn.name, lvl),
+            scrn.get_filename(),
+            scrn,
+            wr_screen
+        )
+
+    # transfer output to main
+    txtools.streamcopy(child_out, out)
+    child_out.close()
 
 
 def wr_store(out, doc):
@@ -801,8 +858,8 @@ def wr_store(out, doc):
             func_objs.append(child)
 
     # sort them
-    cls_objs.sort(key=docobject.DocContainer.sk_cleaned_name)
-    func_objs.sort(key=docobject.DocContainer.sk_cleaned_name)
+    docobject.DocContainer.sort(cls_objs)
+    docobject.DocContainer.sort(func_objs)
 
     # same as class when it comes to IO
     child_out = StringIO()
@@ -830,10 +887,7 @@ def wr_store(out, doc):
         )
 
     # now seek the child buffer and output to main
-    child_out.seek(0)
-    for line in child_out:
-        out.write(line)
-
+    txtools.streamcopy(child_out, out)
     child_out.close()
 
 
@@ -854,7 +908,7 @@ def wrb_store(out, doc):
     out.write(newline())
 
     # TOC
-    out.write(newline(md_hidr(_MD_H_TOC, 4)))
+    out.write(newline(md_hdr(_MD_H_TOC, 4)))
 
     # start with labels and screens
     labels, screens, ignore = doc.rpy_sort(
@@ -862,15 +916,56 @@ def wrb_store(out, doc):
         docobject.DocScreen
     )
 
-    # TOC and buffer
+    # always sort by cleaned name
+    docobject.DocContainer.sort(labels)
+    docobject.DocContainer.sort(screens)
 
-    # prepare buffers
-    label_out = StringIO()
-    screens_out = StringIO()
-    pyearly_out = StringIO()
-    store_out = StringIO()
+    # setup buffers
+    label_buf = StringIO()
+    screen_buf = StringIO()
+    pyearly_buf = StringIO()
+    store_buf = StringIO()
 
-    # split pieces and write
+    # labels
+    out.write(newline(md_bullet(md_link(_MD_H_LBLS, anc_add(_MD_H_LBLS)), 0)))
+    label_buf.write(newline(md_hdr(_MD_H_LBLS, 1)))
+    wr_labels(label_buf, labels, 2)
+
+    # screens
+    out.write(newline(md_bullet(md_link(_MD_H_SCRS, anc_add(_MD_H_SCRS)), 0)))
+    screen_buf.write(newline(md_hdr(_MD_H_SCRS, 1)))
+    wr_screens(screen_buf, screens, 2)
+
+    # py early if we have
+    if len(doc.early) > 0:
+        out.write(newline(md_bullet(
+            md_link(_MD_H_PYER, anc_add(_MD_H_PYER)),
+            0
+        )))
+        pyearly_buf.write(newline(md_hdr(_MD_H_PYER, 1)))
+        wr_store(pyearly_buf, doc.early)
+
+    # stores
+    store_keys = sorted(doc.stores.keys())
+    for store_key in store_keys:
+        out.write(newline(md_bullet(md_link(
+            store_key, anc_add(store_key)),
+            0
+        )))
+        store_buf.write(newline(md_hdr(store_key, 1)))
+        wr_store(store_buf, doc.stores[store_key])
+
+    # now combine everything
+    txtools.streamcopy(label_buf, out)
+    txtools.streamcopy(screen_buf, out)
+    txtools.streamcopy(pyearly_buf, out)
+    txtools.streamcopy(store_buf, out)
+
+    # close streams
+    label_buf.close()
+    screen_buf.close()
+    pyearly_buf.close()
+    store_buf.close()
 
 
 # runners
@@ -885,7 +980,7 @@ def run(docs):
     """
     choice = True
     while choice is not None:
-        choice = mentils.menu(menu_main)
+        choice = menutils.menu(menu_main)
         if choice is not None:
             choice(docs)
 
@@ -920,6 +1015,12 @@ def run_wbs(docs):
     IN:
         docs - Documentation object to write
     """
+    print(_MD_WBS_OUT.format(_MD_FNAME), end="")
+    with open(_MD_FNAME, "w") as outfile:
+        wrb_store(outfile, docs)
+    print(_MD_DONE)
+
+    menutils.e_pause()
 
 
 # strings
@@ -1013,10 +1114,15 @@ _MD_T_KW_I_IA = "Imported At"
 
 _MD_AG = "**This file is auto-generated**"
 
+_MD_FNAME = "api.md"
+_MD_WBS_OUT = "Writing to {0}..."
+_MD_DONE = "Done!"
+
 # menus
 
 menu_main = [
     ("MD Writer", "Option: "),
+#    ("{0} Debug", set_dbg),
 #    ("Show Help", run_sh),
 #    ("Write By File", run_wbf), # will not support file right now
     ("Write By Store", run_wbs),

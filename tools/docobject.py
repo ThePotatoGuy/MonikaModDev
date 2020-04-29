@@ -614,6 +614,19 @@ class DocContainer(object):
         """
         return docCont.cleaned_name()
 
+    @staticmethod
+    def sort(objs):
+        """
+        Sorts the given DocContainer objects by the cleaned name
+
+        IN:
+            objs - list of objets to sort
+
+        OUT:
+            objs - sorted objects
+        """
+        objs.sort(key=DocContainer.sk_cleaned_name)
+
     def update_imports(self, import_data):
         """
         Updates the internal imports with the given import data
@@ -808,6 +821,8 @@ class DocClass(DocObject):
         """
         super(DocClass, self).__init__(name, raw_docstring, container)
         self.base = base
+        self.is_base_ours = False
+        # TODO: is_base_ours
 
     def get_constructor(self):
         """
@@ -1443,6 +1458,8 @@ class Documentation(object):
                 while not stored:
                     if isinstance(child, objs[index]):
                         results[index].append(child)
+                        stored = True
+                    else:
                         stored = True
 
                 if not stored:
