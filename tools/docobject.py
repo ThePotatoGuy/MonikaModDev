@@ -822,7 +822,6 @@ class DocClass(DocObject):
         super(DocClass, self).__init__(name, raw_docstring, container)
         self.base = base
         self.is_base_ours = False
-        # TODO: is_base_ours
 
     def get_constructor(self):
         """
@@ -1432,6 +1431,23 @@ class Documentation(object):
         Yields each CombinedDocStore
         """
         return self.stores.itervalues()
+
+    def post_parse(self):
+        """
+        Runs code that should be ran post parsing
+        """
+        # combine docs
+        self.combine()
+
+        # retrieve all class objects and indexes them
+        index = {}
+        classes = self.rpy_sort(DocClass)[0]
+        for cls in classes:
+            index[cls.name] = cls
+
+        # then set is_base_ours as appropriate
+        for cls in index.itervalues():
+            cls.is_base_ours = cls.base in index
 
     def rpy_sort(self, *objs):
         """

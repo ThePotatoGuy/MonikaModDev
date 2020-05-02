@@ -953,8 +953,8 @@ def run_pf():
     fname, fpath = selected_file
     _parse_single(RPYFileParser(), fname, fpath)
 
-    # then combine appropraite doc files
-    docs.combine()
+    # then do post parse code
+    docs.post_parse()
 
     menutils.e_pause()
 
@@ -972,8 +972,8 @@ def run_pp():
     # get all files and run
     _parse_project(RPYFileParser(), fst.get_project_files())
 
-    # then combine the appropriate doc files
-    docs.combine()
+    # post parse code
+    docs.post_parse()
 
     menutils.e_pause()
 

@@ -440,7 +440,7 @@ def toc_wr(tocbuf, docbuf, hdr, fname, doc, wrfunc, ancname=None):
     # generate anchorized name
     if ancname is None:
         anchor = anc_add(doc.name)
-        link_name = doc.name
+        link_name = md_code(doc.name)
     else:
         anchor = anc_add(ancname)
         link_name = ancname
@@ -486,7 +486,7 @@ def wr_class(out, doc, fname):
 
     # available after (for store only)
     if isinstance(doc.container, docobject.DocStoreLevel):
-        attrs.append((_MD_T_KW, md_code(doc.container.init_lvl), 3))
+        attrs.append((_MD_T_KW_AA, md_code(doc.container.init_lvl), 3))
 
     # add baseclass if exist
     if doc.base is not None:
@@ -567,13 +567,14 @@ def wr_class(out, doc, fname):
             toc_wr(
                 out,
                 child_out,
-                md_hdr(func.name, 3),
+                md_hdr(md_code(func.name), 3),
                 fname,
                 func,
                 wr_function
             )
 
     # now seek the child buffer to zero and output to main buffer
+    out.write(newline())
     txtools.streamcopy(child_out, out)
     child_out.close()
 
@@ -714,13 +715,14 @@ def wr_labels(out, labels, lvl):
         toc_wr(
             out,
             child_out,
-            md_hdr(lbl.name, lvl),
+            md_hdr(md_code(lbl.name), lvl),
             lbl.get_filename(),
             lbl,
             wr_label
         )
 
     # transfer output to main
+    out.write(newline())
     txtools.streamcopy(child_out, out)
     child_out.close()
 
@@ -778,13 +780,14 @@ def wr_screens(out, screens, lvl):
         toc_wr(
             out,
             child_out,
-            md_hdr(scrn.name, lvl),
+            md_hdr(md_code(scrn.name), lvl),
             scrn.get_filename(),
             scrn,
             wr_screen
         )
 
     # transfer output to main
+    out.write(newline())
     txtools.streamcopy(child_out, out)
     child_out.close()
 
@@ -869,7 +872,7 @@ def wr_store(out, doc):
         toc_wr(
             out,
             child_out,
-            md_hdr(cls.name, 2),
+            md_hdr(md_code(cls.name), 2),
             cls.get_filename(),
             cls,
             wr_class
@@ -880,13 +883,14 @@ def wr_store(out, doc):
         toc_wr(
             out,
             child_out,
-            md_hdr(func.name, 2),
+            md_hdr(md_code(func.name), 2),
             func.get_filename(),
             func,
             wr_function
         )
 
     # now seek the child buffer and output to main
+    out.write(newline())
     txtools.streamcopy(child_out, out)
     child_out.close()
 
@@ -948,12 +952,15 @@ def wrb_store(out, doc):
     # stores
     store_keys = sorted(doc.stores.keys())
     for store_key in store_keys:
-        out.write(newline(md_bullet(md_link(
-            store_key, anc_add(store_key)),
+        out.write(newline(md_bullet(
+            md_link(md_code(store_key), anc_add(store_key)),
             0
         )))
         store_buf.write(newline(md_hdr(store_key, 1)))
         wr_store(store_buf, doc.stores[store_key])
+
+    # spacer after TOC
+    out.write(newline())
 
     # now combine everything
     txtools.streamcopy(label_buf, out)
@@ -1069,7 +1076,7 @@ _MD_HDR = "#"
 _MD_B = "**{0}**"
 _MD_I = "_{0}_"
 _MD_C = "`{0}`"
-_MD_L = "[0]({1})"
+_MD_L = "[{0}]({1})"
 _MD_CB = "```"
 _MD_BL = "{0}* {1}"
 
