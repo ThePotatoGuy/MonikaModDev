@@ -27,6 +27,7 @@
 * [`mas_farewells`](#mas_farewells)
 * [`mas_filereacts`](#mas_filereacts)
 * [`mas_fun_facts`](#mas_fun_facts)
+* [`mas_games`](#mas_games)
 * [`mas_globals`](#mas_globals)
 * [`mas_gmenu`](#mas_gmenu)
 * [`mas_greetings`](#mas_greetings)
@@ -388,6 +389,7 @@
 * [`v0_10_6`](#v0_10_6)
 * [`v0_10_7`](#v0_10_7)
 * [`v0_11_0`](#v0_11_0)
+* [`v0_11_1`](#v0_11_1)
 * [`v0_3_0`](#v0_3_0)
 * [`v0_4_0`](#v0_4_0)
 * [`v0_7_0`](#v0_7_0)
@@ -3440,6 +3442,9 @@ IN:
       if hide_monika is False - True will do nothing and False will hide
           emptydesk after Monika is shown.
       (Default: True)
+  progress_filter - True will progress the filter. False will not
+      NOTE: use this if you explicity set the filter
+      (Default: True)
 ```
 ## `start`
 
@@ -3548,8 +3553,17 @@ This file goes through the actions for updating Monika After story
 | `updates` |
 
 ```
-non generic updates go here
 0.11.0
+```
+## `v0_11_1`
+
+| File |
+| ---:|
+| `updates` |
+
+```
+non generic updates go here
+0.11.1
 ```
 ## `v0_3_0`
 
@@ -4128,6 +4142,7 @@ This label calls act one but with words being gathered
 * [`v0_10_6`](#v0_10_6-1)
 * [`v0_10_7`](#v0_10_7-1)
 * [`v0_11_0`](#v0_11_0-1)
+* [`v0_11_1`](#v0_11_1-1)
 * [`v0_3_0`](#v0_3_0-1)
 * [`v0_4_0`](#v0_4_0-1)
 * [`v0_7_0`](#v0_7_0-1)
@@ -7180,6 +7195,9 @@ IN:
       if hide_monika is False - True will do nothing and False will hide
           emptydesk after Monika is shown.
       (Default: True)
+  progress_filter - True will progress the filter. False will not
+      NOTE: use this if you explicity set the filter
+      (Default: True)
 ```
 ## `start`
 
@@ -7288,8 +7306,17 @@ This file goes through the actions for updating Monika After story
 | `updates` |
 
 ```
-non generic updates go here
 0.11.0
+```
+## `v0_11_1`
+
+| File |
+| ---:|
+| `updates` |
+
+```
+non generic updates go here
+0.11.1
 ```
 ## `v0_3_0`
 
@@ -7565,6 +7592,10 @@ This label calls act one but with words being gathered
 * [`MASLinearForm`](#maslinearform)
 * [`MASMailbox`](#masmailbox)
 * [`MASQuipList`](#masquiplist)
+* [`MASDictFilterSwitch`](#masdictfilterswitch)
+* [`MASFilterSwitch`](#masfilterswitch)
+* [`MASFilteredSprite`](#masfilteredsprite)
+* [`MASLiteralFilterSwitch`](#masliteralfilterswitch)
 * [`_mas_earlyCheck`](#_mas_earlycheck)
 * [`tryper`](#tryper)
 * [`trywrite`](#trywrite)
@@ -8444,7 +8475,10 @@ PROPERTIES:
 * [`_playHoverSound`](#_playhoversound)
 * [`_isOverMe`](#_isoverme)
 * [`disable`](#disable)
+* [`create_st`](#create_st)
+* [`_gen_bg`](#_gen_bg)
 * [`event`](#event)
+* [`create_stb`](#create_stb)
 * [`ground`](#ground)
 
 ### Constructor
@@ -8569,12 +8603,77 @@ Disables this button. This changes the internal state, so its
 preferable to use this over setting the disabled property
 directly
 ```
+### `create_st`
+
+| File | Class | Modifier | Visiblity |
+| ---:| ---:|:--- |:--- |
+| `definitions` | [`MASButtonDisplayable`](#masbuttondisplayable) | `staticmethod` | `public` |
+
+```
+Creates a MASButtonDisplyable using a single text string.
+
+Default font/textsize/colors/outlines are used here.
+
+IN:
+    text_str - the text to use for the button
+    incl_disb_text - True if we may have a disabled state for
+        this button, False if not
+    *args - positional args to pass into constructor.
+        do NOT include:
+            - idle_text
+            - hover_text
+            - disable_text
+    **kwargs - keyword args to pass into constructor
+
+RETURNS: created MASButtondisplayable
+```
+### `_gen_bg`
+
+| File | Class | Modifier | Visiblity |
+| ---:| ---:|:--- |:--- |
+| `definitions` | [`MASButtonDisplayable`](#masbuttondisplayable) | `staticmethod` | `internal` |
+
+```
+Attempts to pull choice button's Frame and build an appropraite
+    image with it using the given prefix.
+    This is specifically for MASButtonDisplayables.
+
+IN:
+    prefix - prefix to use in the frame
+        do NOT append "_"
+
+RETURNS: Frame object to use
+```
 ### `event`
 
 | File | Class | Modifier | Visiblity |
 | ---:| ---:|:--- |:--- |
 | `definitions` | [`MASButtonDisplayable`](#masbuttondisplayable) | `` | `public` |
 
+### `create_stb`
+
+| File | Class | Modifier | Visiblity |
+| ---:| ---:|:--- |:--- |
+| `definitions` | [`MASButtonDisplayable`](#masbuttondisplayable) | `staticmethod` | `public` |
+
+```
+Creates a MASButtonDisplayable using a snigle text string and
+standard button images.
+
+IN:
+    text_str - the text to use for the button
+    incl_disb_text - True if we may have a disabled state for this
+        button, False if not
+    *args - positional args to pass into constructor.
+        do NOT include:
+            - idle_text
+            - hover_text
+            - disable_text
+            - idle_back
+            - hover_back
+            - disable_back
+    **kwargs - keyword args to pass into constructor
+```
 ### `ground`
 
 | File | Class | Modifier | Visiblity |
@@ -8908,7 +9007,6 @@ Special displayable that adjusts its image based on filter.
 Also includes surface caching, if desired.
 
 PROPERTIES:
-        caching.
     flt - filter we last used
 ```
 #### TOC
@@ -8933,16 +9031,25 @@ IN:
 | `sprite-chart-matrix` | [`early`]() | `MASFilterable` |
 
 ```
-Basic filterable sprite that changes for filter.
-This has NO x/y support
+Generic Filterable Sprite with Highlight support
+
+Potentially more optimal than MASFilterSwitch, but likely to have less
+configuration.
+
+NOTE:
+    Many of the style properties will likely NOT work with this.
+    If you can make it work, submit a PR.
 
 PROPERTIES:
-    img_obj - the Image object represnting this sprite
+    img_path - image path of this sprite
+    img_obj = Image object of this sprite
+    highlight - MASFilterMap of highlights to use
 ```
 #### TOC
 * [Constructor](#constructor-6)
 * [`visit`](#visit)
 * [`render`](#render-2)
+* [`__gen_hl`](#__gen_hl)
 
 ### Constructor
 
@@ -8954,8 +9061,8 @@ PROPERTIES:
 Constructor
 
 IN:
-    image_path - image path (or Image) of the sprite to use
-    remaining properties are sent to Displayable
+    image_path - MUST be an image path string.
+    highlight - MASFilterMap object of highlights to apply
 ```
 ### `visit`
 
@@ -8969,6 +9076,20 @@ IN:
 | ---:| ---:|:--- |:--- |
 | `sprite-chart-matrix` | [`MASFilterableSprite`](#masfilterablesprite) | `` | `public` |
 
+```
+Render function
+```
+### `__gen_hl`
+
+| File | Class | Modifier | Visiblity |
+| ---:| ---:|:--- |:--- |
+| `sprite-chart-matrix` | [`MASFilterableSprite`](#masfilterablesprite) | `` | `private` |
+
+```
+Builds highlight Image based on current filters and cache
+
+REUTRNS: Image to use as highlight, None if we shouldnt make filter
+```
 ## `MASInteractable`
 
 | File | Store Module | Base Class |
@@ -9592,6 +9713,87 @@ issues.
 
 IN:
     msg - message to display
+```
+## `MASDictFilterSwitch`
+
+| File | Store Module | Visiblity |
+| ---:| ---:|:--- |
+| `sprite-chart-matrix` | [`early`]() | `public` |
+
+```
+Builds a filter switch that lets you explicitly define the images
+for a filter.
+
+NOTE: this is a bad choice to use UNLESS you have a good default.
+
+IN:
+    def_img - the default image to use for any filter not defined.
+    filterize_def - True will apply filters to the default image
+        as appropraite, False will NOT apply filters.
+        Setting this as False may result in a sprite that looks shit
+        in certain settings.
+    flt_pairs - dict mapping filtesr to images
+        key: filter enum (day/night/etc...)
+        value: the image value to use for that filter
+
+RETURNS: ConditionSwitch with filter support
+```
+## `MASFilterSwitch`
+
+| File | Store Module | Visiblity |
+| ---:| ---:|:--- |
+| `sprite-chart-matrix` | [`early`]() | `public` |
+
+```
+Builds a condition switch that applies appropriate filters.
+
+NOTE: as this returns a ConditionSwitch, use this when you need
+    more renpy-based control over an image.
+
+IN:
+    img - image path/ImageBase to build filter switch for
+        NOTE: CANNOT BE A DISPLAYABLE
+
+RETURNS: ConditionSwitch for filters
+```
+## `MASFilteredSprite`
+
+| File | Store Module | Visiblity |
+| ---:| ---:|:--- |
+| `sprite-chart-matrix` | [`early`]() | `public` |
+
+```
+Generates an already filtered version of the given image
+
+IN:
+    flt - filter to use
+    img_base - image path/ImageBase to build filtered sprite for
+
+RETURNS: Displayable of the filtered image
+```
+## `MASLiteralFilterSwitch`
+
+| File | Store Module | Visiblity |
+| ---:| ---:|:--- |
+| `sprite-chart-matrix` | [`early`]() | `public` |
+
+```
+Builds a filter switch that lets you explicitly define the images
+for a filter.
+
+NOTE: this is a bad choice to use UNLESS you have a good default.
+
+IN:
+    def_img - the default image to use for any filter not defined.
+    filterize_def - True will apply filters to the default image
+        as appropraite, False will NOT apply filters.
+        Setting this as False may result in a sprite that looks shit
+        in certain settings.
+    **flt_pairs - name=value args for specific filters:
+        name: filter enum (day/night/etc...)
+        value: the image value to use for that filter
+
+RETURNS: ConditionSwitch with filter support
 ```
 ## `_mas_earlyCheck`
 
@@ -10269,6 +10471,7 @@ Internalized unlockEventLabel
 * `-500`
 * `-101`
 * `-100`
+* `-98`
 * `-45`
 * `-20`
 * `-11`
@@ -10281,10 +10484,12 @@ Internalized unlockEventLabel
 * `0`
 * `1`
 * `2`
+* `3`
 * `4`
 * `5`
 * `6`
 * `7`
+* `8`
 * `9`
 * `10`
 * `11`
@@ -10393,14 +10598,17 @@ Internalized unlockEventLabel
 * [`mas_DropShield_dlg`](#mas_dropshield_dlg)
 * [`mas_DropShield_idle`](#mas_dropshield_idle)
 * [`mas_DropShield_mumu`](#mas_dropshield_mumu)
+* [`mas_DropShield_piano`](#mas_dropshield_piano)
 * [`mas_HKBDropShield`](#mas_hkbdropshield)
 * [`mas_HKBIsEnabled`](#mas_hkbisenabled)
 * [`mas_HKBIsVisible`](#mas_hkbisvisible)
 * [`mas_HKBRaiseShield`](#mas_hkbraiseshield)
 * [`mas_HKCanQuietMusic`](#mas_hkcanquietmusic)
 * [`mas_HKDropShield`](#mas_hkdropshield)
+* [`mas_HKDropShield_main`](#mas_hkdropshield_main)
 * [`mas_HKIsEnabled`](#mas_hkisenabled)
 * [`mas_HKRaiseShield`](#mas_hkraiseshield)
+* [`mas_HKRaiseShield_main`](#mas_hkraiseshield_main)
 * [`mas_HistGetFirstYearOfValue`](#mas_histgetfirstyearofvalue)
 * [`mas_HistLookup`](#mas_histlookup)
 * [`mas_HistLookup_k`](#mas_histlookup_k)
@@ -10412,6 +10620,8 @@ Internalized unlockEventLabel
 * [`mas_HistVerifyLastYear_k`](#mas_histverifylastyear_k)
 * [`mas_HistVerify_k`](#mas_histverify_k)
 * [`mas_HistWasFirstValueIn`](#mas_histwasfirstvaluein)
+* [`mas_MUINDropShield`](#mas_muindropshield)
+* [`mas_MUINRaiseShield`](#mas_muinraiseshield)
 * [`mas_MUMUDropShield`](#mas_mumudropshield)
 * [`mas_MUMURaiseShield`](#mas_mumuraiseshield)
 * [`mas_OVLDropShield`](#mas_ovldropshield)
@@ -10422,6 +10632,7 @@ Internalized unlockEventLabel
 * [`mas_RaiseShield_dlg`](#mas_raiseshield_dlg)
 * [`mas_RaiseShield_idle`](#mas_raiseshield_idle)
 * [`mas_RaiseShield_mumu`](#mas_raiseshield_mumu)
+* [`mas_RaiseShield_piano`](#mas_raiseshield_piano)
 * [`mas_SELisUnlocked`](#mas_selisunlocked)
 * [`mas_addBlacklistReact`](#mas_addblacklistreact)
 * [`mas_addClothesToHolidayMap`](#mas_addclothestoholidaymap)
@@ -10493,6 +10704,7 @@ Internalized unlockEventLabel
 * [`mas_getGiftStatsRange`](#mas_getgiftstatsrange)
 * [`mas_getGiftedDates`](#mas_getgifteddates)
 * [`mas_getNextMonikaBirthday`](#mas_getnextmonikabirthday)
+* [`mas_getPropFromStyle`](#mas_getpropfromstyle)
 * [`mas_getSpriteObjInfo`](#mas_getspriteobjinfo)
 * [`mas_getTimeFile`](#mas_gettimefile)
 * [`mas_get_player_bookmarks`](#mas_get_player_bookmarks)
@@ -10500,6 +10712,7 @@ Internalized unlockEventLabel
 * [`mas_getuser`](#mas_getuser)
 * [`mas_giftCapGainAff`](#mas_giftcapgainaff)
 * [`mas_hasBookmarks`](#mas_hasbookmarks)
+* [`mas_hasDarkStyle`](#mas_hasdarkstyle)
 * [`mas_hasLockedClothesWithExprop`](#mas_haslockedclotheswithexprop)
 * [`mas_hasSpecialOutfit`](#mas_hasspecialoutfit)
 * [`mas_hasUnlockedClothesWithExprop`](#mas_hasunlockedclotheswithexprop)
@@ -10519,6 +10732,7 @@ Internalized unlockEventLabel
 * [`mas_inEVL`](#mas_inevl)
 * [`mas_insertSort`](#mas_insertsort)
 * [`mas_isA01`](#mas_isa01)
+* [`mas_isCurrentFlt`](#mas_iscurrentflt)
 * [`mas_isD25`](#mas_isd25)
 * [`mas_isD25Eve`](#mas_isd25eve)
 * [`mas_isD25GiftHold`](#mas_isd25gifthold)
@@ -10528,6 +10742,7 @@ Internalized unlockEventLabel
 * [`mas_isD25Pre`](#mas_isd25pre)
 * [`mas_isD25PreNYE`](#mas_isd25prenye)
 * [`mas_isD25Season`](#mas_isd25season)
+* [`mas_isDarkStyle`](#mas_isdarkstyle)
 * [`mas_isF14`](#mas_isf14)
 * [`mas_isFall`](#mas_isfall)
 * [`mas_isFocused`](#mas_isfocused)
@@ -10541,6 +10756,7 @@ Internalized unlockEventLabel
 * [`mas_isRstBlk`](#mas_isrstblk)
 * [`mas_isSpring`](#mas_isspring)
 * [`mas_isSummer`](#mas_issummer)
+* [`mas_isTextDarkStyle`](#mas_istextdarkstyle)
 * [`mas_isTextSpeedEnabled`](#mas_istextspeedenabled)
 * [`mas_isWinter`](#mas_iswinter)
 * [`mas_isplayer_bday`](#mas_isplayer_bday)
@@ -10550,6 +10766,7 @@ Internalized unlockEventLabel
 * [`mas_lockEVL`](#mas_lockevl)
 * [`mas_lockEvent`](#mas_lockevent)
 * [`mas_lockEventLabel`](#mas_lockeventlabel)
+* [`mas_lockGame`](#mas_lockgame)
 * [`mas_lockHair`](#mas_lockhair)
 * [`mas_mbdayCapGainAff`](#mas_mbdaycapgainaff)
 * [`mas_mumuToIdleShield`](#mas_mumutoidleshield)
@@ -10565,6 +10782,8 @@ Internalized unlockEventLabel
 * [`mas_open_extra_menu`](#mas_open_extra_menu)
 * [`mas_pbdayCapGainAff`](#mas_pbdaycapgainaff)
 * [`mas_player_bday_curr`](#mas_player_bday_curr)
+* [`mas_prefixFrame`](#mas_prefixframe)
+* [`mas_progressFilter`](#mas_progressfilter)
 * [`_mas_quick_menu_cb`](#_mas_quick_menu_cb)
 * [`mas_randomSelectAndPush`](#mas_randomselectandpush)
 * [`mas_randomSelectAndRemove`](#mas_randomselectandremove)
@@ -10597,6 +10816,7 @@ Internalized unlockEventLabel
 * [`mas_stripEVL`](#mas_stripevl)
 * [`mas_surpriseBdayHideVisuals`](#mas_surprisebdayhidevisuals)
 * [`mas_surpriseBdayShowVisuals`](#mas_surprisebdayshowvisuals)
+* [`mas_swapStyle`](#mas_swapstyle)
 * [`mas_transferTopic`](#mas_transfertopic)
 * [`mas_transferTopicData`](#mas_transfertopicdata)
 * [`mas_transferTopicSeen`](#mas_transfertopicseen)
@@ -11334,6 +11554,8 @@ PROPERTIES:
 #### TOC
 * [Constructor](#constructor-14)
 * [`__ne__`](#__ne__-1)
+* [`isFltNight`](#isfltnight)
+* [`isFltDay`](#isfltday)
 * [`isChangingRoom`](#ischangingroom)
 * [`fromTuple`](#fromtuple)
 * [`exit`](#exit)
@@ -11423,6 +11645,38 @@ IN:
 | ---:| ---:|:--- |
 | `zz_backgrounds` | [`MASBackground`](#masbackground) | `` |
 
+### `isFltNight`
+
+| File | Class | Modifier | Visiblity |
+| ---:| ---:|:--- |:--- |
+| `zz_backgrounds` | [`MASBackground`](#masbackground) | `` | `public` |
+
+```
+Checks if the given filter is considered a "night" filter according
+to this background.
+
+IN:
+    flt - filter to check
+        if None, we use the current filter
+
+RETURNS: True if flt is a "night" filter according to this BG
+```
+### `isFltDay`
+
+| File | Class | Modifier | Visiblity |
+| ---:| ---:|:--- |:--- |
+| `zz_backgrounds` | [`MASBackground`](#masbackground) | `` | `public` |
+
+```
+Checks if the given filter is considered a "day" filter according
+to this background.
+
+IN:
+    flt - filter to check
+        if None, we use the current filter
+
+RETURNS: True if flt is a "day" filter according to this bg
+```
 ### `isChangingRoom`
 
 | File | Class | Modifier | Visiblity |
@@ -11658,6 +11912,7 @@ and refreshes the view
 IN:
     ascend - flag that indicates wheter increment or decrement
         (Defaults to True)
+    set_to - if not None, set year to this value instead
 ```
 ### `_setupEasterEG`
 
@@ -14447,12 +14702,14 @@ See MASMailbox for properties
 #### TOC
 * [Constructor](#constructor-26)
 * [`get_idle_cb`](#get_idle_cb)
+* [`get_scene_change`](#get_scene_change)
 * [`send_ds_gre_type`](#send_ds_gre_type)
 * [`send_idle_cb`](#send_idle_cb)
 * [`get_skipmidloopeval`](#get_skipmidloopeval)
 * [`get_rebuild_msg`](#get_rebuild_msg)
 * [`send_skipmidloopeval`](#send_skipmidloopeval)
 * [`send_rebuild_msg`](#send_rebuild_msg)
+* [`send_scene_change`](#send_scene_change)
 * [`get_ds_gre_type`](#get_ds_gre_type)
 
 ### Constructor
@@ -14472,6 +14729,15 @@ Constructor for the idle mailbox
 
 ```
 Gets idle callback label
+```
+### `get_scene_change`
+
+| File | Class | Modifier | Visiblity |
+| ---:| ---:|:--- |:--- |
+| `script-ch30` | [`MASIdleMailbox`](#masidlemailbox) | `` | `public` |
+
+```
+Gets scene change value
 ```
 ### `send_ds_gre_type`
 
@@ -14526,6 +14792,15 @@ Sends skip mid loop eval message to mailbox
 
 ```
 Sends the rebuild message to the mailbox
+```
+### `send_scene_change`
+
+| File | Class | Modifier | Visiblity |
+| ---:| ---:|:--- |:--- |
+| `script-ch30` | [`MASIdleMailbox`](#masidlemailbox) | `` | `public` |
+
+```
+Sends scene change message to mailbox
 ```
 ### `get_ds_gre_type`
 
@@ -18625,7 +18900,6 @@ Shows the movie buttons
 | `event-handler` | [`global_0`]() | `0` | `public` |
 
 ```
-
 Adds an event object to the given eventdb dict
 Properly checksfor label and conditional statements
 This function ensures that a bad item is not added to the database
@@ -18633,15 +18907,22 @@ This function ensures that a bad item is not added to the database
 NOTE: this MUST be ran after init level 4.
 
 IN:
-  event - the Event object to add to database
-  eventdb - The Event databse (dict) we want to add to
-      NOTE: DEPRECATED. Use code instead.
-      NOTE: this can still be used for custom adds.
-      (Default: None)
-  skipCalendar - flag that marks wheter or not calendar check should
-      be skipped
-  code - code of the event database to add to.
-      (Default: EVE) - event database
+    event - the Event object to add to database
+    eventdb - The Event databse (dict) we want to add to
+        NOTE: DEPRECATED. Use code instead.
+        NOTE: this can still be used for custom adds.
+        (Default: None)
+    skipCalendar - flag that marks wheter or not calendar check should
+        be skipped
+
+    restartBlacklist - True if this topic should be added to the restart blacklist
+        (Default: False)
+
+    markSeen - True if this topic should be `True` in persistent._seen_ever.
+        (Default: False)
+
+    code - code of the event database to add to.
+        (Default: EVE) - event database
 ```
 ## `addReaction`
 
@@ -19097,6 +19378,7 @@ Enables:
     - Extra hotkey
     - Music hotkey
     - Play button + hotkey
+    - Music controller hotkeys
 
 Intended Flow:
     - Idle mode ends
@@ -19117,6 +19399,23 @@ Enables:
 
 Intended Flow:
     - The Music menu is closed
+```
+## `mas_DropShield_piano`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `zz_shields` | [`global_0`]() | `0` | `public` |
+
+```
+Enables:
+    - text speed
+    - escape key
+    - Music button + hotkey
+    - Music Menu
+    - Calendar overlay
+
+Shows:
+    - hotkey buttons
 ```
 ## `mas_HKBDropShield`
 
@@ -19170,7 +19469,16 @@ RETURNS: True if we can lower or stop the music, False if not
 | `zz_hotkeys` | [`global_0`]() | `0` | `public` | **Yes** |
 
 ```
-Enables the main hotkeys
+Enables the main hotkeys and music controller keys
+```
+## `mas_HKDropShield_main`
+
+| File | Store Module | Available After | Visiblity | Runtime only? |
+| ---:| ---:| ---:|:--- |:--- |
+| `zz_hotkeys` | [`global_0`]() | `0` | `public` | **Yes** |
+
+```
+Enables main hotkeys
 ```
 ## `mas_HKIsEnabled`
 
@@ -19188,7 +19496,16 @@ RETURNS: True if all the main hotkeys are enabled, False otherwise
 | `zz_hotkeys` | [`global_0`]() | `0` | `public` | **Yes** |
 
 ```
-Disables the main hotkeys
+Disables main hotkeys and music controller keys
+```
+## `mas_HKRaiseShield_main`
+
+| File | Store Module | Available After | Visiblity | Runtime only? |
+| ---:| ---:| ---:|:--- |:--- |
+| `zz_hotkeys` | [`global_0`]() | `0` | `public` | **Yes** |
+
+```
+Disables main hotkeys
 ```
 ## `mas_HistGetFirstYearOfValue`
 
@@ -19382,6 +19699,36 @@ OUT:
         - True if the first year matches the year provided
         - False otherwise
 ```
+## `mas_MUINDropShield`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `zz_shields` | [`global_0`]() | `0` | `public` |
+
+```
+Enables:
+    - Music button + hotkey
+    - Music Menu
+    - Music controller keys
+
+Intended Flow:
+    - Whenever all music-based interactions need to be enabled
+```
+## `mas_MUINRaiseShield`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `zz_shields` | [`global_0`]() | `0` | `public` |
+
+```
+Disables:
+    - Music button + hotkey
+    - Music Menu
+    - Music controller keys
+
+Intended Flow:
+    - Whenever all music-based interactions need to be disabled
+```
 ## `mas_MUMUDropShield`
 
 | File | Store Module | Available After | Visiblity |
@@ -19498,6 +19845,7 @@ Disables:
     - Extra hotkey
     - Music hotkey
     - Play button + hotkey
+    - Music controller hotkeys
 
 Intended Flow:
     - Idle mode starts
@@ -19518,6 +19866,23 @@ Disables:
 
 Intended Flow:
     - The Music menu is opened
+```
+## `mas_RaiseShield_piano`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `zz_shields` | [`global_0`]() | `0` | `public` |
+
+```
+Disables:
+    - text speed
+    - escape key
+    - Music button + hotkey
+    - Music Menu
+    - Calendar overlay
+
+Hides:
+    - hotkey buttons
 ```
 ## `mas_SELisUnlocked`
 
@@ -20073,7 +20438,6 @@ IN:
         (Default; True)
 
 ASSUMES:
-    morning_flag
     mas_is_raining
     mas_is_snowing
 ```
@@ -20452,6 +20816,22 @@ OUT:
 | ---:| ---:| ---:|:--- |
 | `script-holidays` | [`global_-1`]() | `-1` | `public` |
 
+## `mas_getPropFromStyle`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `zz_transforms` | [`global_-10`]() | `-10` | `public` |
+
+```
+Retrieves a property from a style
+Recursively checks parent styles until the property is found.
+
+IN:
+    style_name - name of style as string
+    prop_name - property to find as string
+
+RETURNS: value of the propery if we can find it, None if not found
+```
 ## `mas_getSpriteObjInfo`
 
 | File | Store Module | Available After | Visiblity |
@@ -20545,6 +20925,15 @@ Checks to see if we have bookmarks to show
 Bookmarks are restricted to Normal+ affection
 and to topics that are unlocked and are available
 based on current affection
+```
+## `mas_hasDarkStyle`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `styles` | [`global_0`]() | `0` | `public` |
+
+```
+Check if selected style has a dark alternative.
 ```
 ## `mas_hasLockedClothesWithExprop`
 
@@ -20792,6 +21181,20 @@ OUT:
 | ---:| ---:| ---:|:--- |
 | `script-holidays` | [`global_-10`]() | `-10` | `public` |
 
+## `mas_isCurrentFlt`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `sprite-chart-matrix` | [`global_-98`]() | `-98` | `public` |
+
+```
+Checks if the given filter is the current filter.
+
+IN:
+    flt - filter to check
+
+RETURNS: True if flt is the current filter, false if not
+```
 ## `mas_isD25`
 
 | File | Store Module | Available After | Visiblity |
@@ -20944,6 +21347,15 @@ IN:
 
 RETURNS: True if given date is in d25 season, False otherwise
 ```
+## `mas_isDarkStyle`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `styles` | [`global_0`]() | `0` | `public` |
+
+```
+Check if selected style is a dark style.
+```
 ## `mas_isF14`
 
 | File | Store Module | Available After | Visiblity |
@@ -20978,19 +21390,16 @@ Checks if MAS is the focused window
 
 | File | Store Module | Available After | Visiblity |
 | ---:| ---:| ---:|:--- |
-| `script-ch30` | [`global_0`]() | `0` | `public` |
+| `zz_games` | [`global_8`]() | `8` | `public` |
 
 ```
 Checks if the given game is unlocked.
-NOTE: this is using the game_unlocks database, which only cars about
-whether or not you have reached the appropraite level to unlock a game.
-Each game may be disabled for other reasons not handled via
-this system.
 
 IN:
     gamename - name of the game to check
 
-RETURNS: True if the game is unlocked, false if not
+OUT:
+    True if the game is unlocked, False if not, or the game doesn't exist
 ```
 ## `mas_isInActiveWindow`
 
@@ -21015,13 +21424,19 @@ IN:
 | `script-holidays` | [`global_-1`]() | `-1` | `public` |
 
 ## `mas_isMorning`
+**DEPRECATED**
 
 | File | Store Module | Available After | Visiblity |
 | ---:| ---:| ---:|:--- |
 | `script-ch30` | [`global_0`]() | `0` | `public` |
 
 ```
-generate the times we need
+Checks if it is day or night via suntimes
+
+NOTE: the wording of this function is bad. This does not literally
+    mean that it is morning. USE mas_isDayNow
+
+RETURNS: True if day, false if not
 ```
 ## `mas_isNYD`
 
@@ -21093,6 +21508,15 @@ Note: If persistent._mas_pm_live_north_hemisphere is none, we assume northern he
 
 RETURNS:
     boolean showing whether or not it's summer right now
+```
+## `mas_isTextDarkStyle`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `styles` | [`global_0`]() | `0` | `public` |
+
+```
+Check if selected style is a text_dark style.
 ```
 ## `mas_isTextSpeedEnabled`
 
@@ -21206,6 +21630,18 @@ Locks the given event label
 IN:
     evlabel - event label of the event to lock
     eventdb - Event database to find this label
+```
+## `mas_lockGame`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `zz_games` | [`global_8`]() | `8` | `public` |
+
+```
+Locks the given game.
+
+IN:
+    gamename - name of the game to lock
 ```
 ## `mas_lockHair`
 
@@ -21371,6 +21807,38 @@ Jumps to the extra menu workflow
 | ---:| ---:| ---:|:--- |
 | `script-holidays` | [`global_-11`]() | `-11` | `public` |
 
+## `mas_prefixFrame`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `zz_transforms` | [`global_-10`]() | `-10` | `public` |
+
+```
+Generates a frame object with the given prefix substitued into the
+image. This effectively makes a copy of the given Frame object.
+
+NOTE: cannot use _duplicate as it does shallow copy for some reason.
+
+IN:
+    frm - Frame object
+    prefix - prefix to replace `prefix_`. "_" will be added if not
+        found
+
+RETURNS: Frame object, or None if failed to make it
+```
+## `mas_progressFilter`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `script-ch30` | [`global_0`]() | `0` | `public` |
+
+```
+Changes filter according to rules.
+
+Call this when you want to update the filter.
+
+RETURNS: True upon a filter change, False if not
+```
 ## `_mas_quick_menu_cb`
 
 | File | Store Module | Available After | Visiblity |
@@ -21636,15 +22104,14 @@ IN:
     _weather - weather to set to.
 ```
 ## `mas_shouldChangeTime`
+**DEPRECATED**
 
 | File | Store Module | Available After | Visiblity |
 | ---:| ---:| ---:|:--- |
 | `script-ch30` | [`global_0`]() | `0` | `public` |
 
 ```
-Checks if we should change the day to night or night to day.
-
-RETURNS: true if we should change day/night cycle, False otherwise
+This no longer makes sense with the filtering system.
 ```
 ## `mas_shouldRain`
 
@@ -21789,6 +22256,18 @@ IN:
 | ---:| ---:| ---:|:--- |
 | `script-holidays` | [`global_-1`]() | `-1` | `public` |
 
+## `mas_swapStyle`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `styles` | [`global_0`]() | `0` | `public` |
+
+```
+Swaps the single style between default and dark variants.
+
+IN:
+    morning_flag - Light/dark mode switch
+```
 ## `mas_transferTopic`
 
 | File | Store Module | Available After | Visiblity |
@@ -21928,7 +22407,7 @@ IN:
 
 | File | Store Module | Available After | Visiblity |
 | ---:| ---:| ---:|:--- |
-| `script-ch30` | [`global_0`]() | `0` | `public` |
+| `zz_games` | [`global_8`]() | `8` | `public` |
 
 ```
 Unlocks the given game.
@@ -22380,6 +22859,7 @@ ASSUMES:
 * [`runAffGPPs`](#runaffgpps)
 * [`runAffPPs`](#runaffpps)
 * [`save_quips`](#save_quips)
+* [`txt_audit`](#txt_audit)
 * [`_upsetToDis`](#_upsettodis)
 * [`_upsetToNormal`](#_upsettonormal)
 
@@ -22709,6 +23189,19 @@ IN:
 | ---:| ---:| ---:|:--- |
 | `script-affection` | [`mas_affection_15`]() | `15` | `public` |
 
+## `txt_audit`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `script-affection` | [`mas_affection_-1`]() | `-1` | `public` |
+
+```
+Generic auditing in the aff log
+
+IN:
+    tag - a string to label thsi audit
+    msg - message to show
+```
 ## `_upsetToDis`
 
 | File | Store Module | Available After | Visiblity |
@@ -24849,6 +25342,58 @@ Gets all unseen (locked) fun facts as eventlabels
 
 OUT:
     List of all unseen fun fact eventlabels
+```
+# mas_games
+
+#### Defined Init Levels
+* `-10`
+* `1`
+* `7`
+
+#### Imports
+
+| Alias | Source | Imported At |
+|:--- |:--- | ---:|
+| `None` | `sys` | `-10` |
+
+#### TOC
+* [`getGameEVByPrompt`](#getgameevbyprompt)
+* [`is_platform_good_for_chess`](#is_platform_good_for_chess)
+* [`_total_games_played`](#_total_games_played)
+
+## `getGameEVByPrompt`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `zz_games` | [`mas_games_7`]() | `7` | `public` |
+
+```
+Gets the game ev using the prompt of its event (gamename)
+
+IN:
+    gamename - Name of the game we want to get
+
+OUT:
+    event object for the game entered if found. None if not found
+```
+## `is_platform_good_for_chess`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `zz_games` | [`mas_games_-10`]() | `-10` | `public` |
+
+## `_total_games_played`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `zz_games` | [`mas_games_1`]() | `1` | `internal` |
+
+```
+Returns the total number of games played by adding up the shown_count of each game
+
+IN:
+    exclude_list - A list of event_label strings for games we want to exclude from the number of games played
+        defaults to an empty list
 ```
 # mas_globals
 
@@ -28144,6 +28689,7 @@ OUT:
 #### Defined Init Levels
 * `-101`
 * `-100`
+* `-99`
 * `-5`
 * `-4`
 * `-2`
@@ -28183,12 +28729,14 @@ OUT:
 * [`acs_wear_mux_pre_change`](#acs_wear_mux_pre_change)
 * [`acs_wear_mux_pst_change`](#acs_wear_mux_pst_change)
 * [`_add_arms_rk`](#_add_arms_rk)
+* [`add_filter`](#add_filter)
 * [`adjust_zoom`](#adjust_zoom)
 * [`alt_bcode`](#alt_bcode)
 * [`alt_hsplit`](#alt_hsplit)
 * [`apply_ACSTemplate`](#apply_acstemplate)
 * [`apply_ACSTemplates`](#apply_acstemplates)
 * [`_bhli`](#_bhli)
+* [`_bhlifp`](#_bhlifp)
 * [`build_loc`](#build_loc)
 * [`build_loc_val`](#build_loc_val)
 * [`_cgen_im`](#_cgen_im)
@@ -28227,6 +28775,7 @@ OUT:
 * [`_gen_im`](#_gen_im)
 * [`get_ACSTemplate`](#get_acstemplate)
 * [`get_ACSTemplate_by_type`](#get_acstemplate_by_type)
+* [`get_filter`](#get_filter)
 * [`get_sprite`](#get_sprite)
 * [`_hair_bun_entry`](#_hair_bun_entry)
 * [`_hair_def_entry`](#_hair_def_entry)
@@ -28272,6 +28821,7 @@ OUT:
 * [`_rk_sitting`](#_rk_sitting)
 * [`_rk_table`](#_rk_table)
 * [`rm_acs`](#rm_acs)
+* [`set_filter`](#set_filter)
 * [`should_disable_lean`](#should_disable_lean)
 * [`show_empty_desk`](#show_empty_desk)
 * [`tryparseclothes`](#tryparseclothes)
@@ -28823,6 +29373,23 @@ IN:
 OUT:
     rk_list - render key list to add render keys to
 ```
+## `add_filter`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `sprite-chart-matrix` | [`mas_sprites_-99`]() | `-99` | `public` |
+
+```
+Adds a filter to the global filters
+You can also use this to override built-in filters.
+
+NOTE: if you plan to use this, please use it before init level -1
+Filters beyond this level will be ignored.
+
+IN:
+    flt_enum - enum key to use as a filter.
+    imx - image matrix to use as filter
+```
 ## `adjust_zoom`
 
 | File | Store Module | Available After | Visiblity |
@@ -28910,6 +29477,26 @@ IN:
     hlcode - highlight code to use. Can be None.
 
 RETURNS: Image to use for highlight, or None if no highlight.
+```
+## `_bhlifp`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `sprite-chart-matrix` | [`mas_sprites_-4`]() | `-4` | `internal` |
+
+```
+Builds a
+High-
+Light
+Image using an image's
+File
+Path
+
+IN:
+    img_path - full filepath to an image, including extension.
+    hlcode - highlight code to use. Can be None
+
+RETURNS: Image to use for highlight, or None if no highlight
 ```
 ## `build_loc`
 
@@ -29265,19 +29852,14 @@ IN:
 RETURNS: dayified key
 ```
 ## `_decide_filter`
+**DEPRECATED**
 
 | File | Store Module | Available After | Visiblity |
 | ---:| ---:| ---:|:--- |
-| `sprite-chart-matrix` | [`mas_sprites_-4`]() | `-4` | `internal` |
+| `sprite-chart-matrix` | [`mas_sprites_-99`]() | `-99` | `internal` |
 
 ```
-Returns the appropriate filter to use
-
-NOTE: this is currently not how we want to do this going forward.
-Once we decide on lighting progression, then have this function call
-that code.
-
-RETURNS: desired filter
+Please use get_filter
 ```
 ## `face_lean_mode`
 
@@ -29368,6 +29950,17 @@ IN:
     acs_type - acs type to get template for
 
 RETURNS: ACSTemplate associated with the acs_type or Nonr if not ound
+```
+## `get_filter`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `sprite-chart-matrix` | [`mas_sprites_-99`]() | `-99` | `public` |
+
+```
+Returns the current filter
+
+RETURNS: filter to use
 ```
 ## `get_sprite`
 
@@ -30111,6 +30704,19 @@ Deletes an ACS by removing it from the map
 
 IN:
     acs - ACS to remove
+```
+## `set_filter`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `sprite-chart-matrix` | [`mas_sprites_-99`]() | `-99` | `public` |
+
+```
+Sets the current filter if it is valid.
+Invalid filters are ignored.
+
+IN:
+    flt_enum - filter to set
 ```
 ## `should_disable_lean`
 
@@ -31256,6 +31862,7 @@ RETURNS:
 * `-990`
 * `-201`
 * `-200`
+* `-1`
 
 #### Imports
 
@@ -31294,7 +31901,7 @@ RETURNS:
 
 #### Defined Init Levels
 * `-995`
-* `-990`
+* `-991`
 * `-100`
 
 #### TOC
@@ -31744,6 +32351,7 @@ NOTE: assumes that we are calling this once at a new session start
 * [`getPlayingMusicName`](#getplayingmusicname)
 * [`getUserVolume`](#getuservolume)
 * [`getVolume`](#getvolume)
+* [`hasMusicMuted`](#hasmusicmuted)
 * [`initMusicChoices`](#initmusicchoices)
 * [`isInMusicList`](#isinmusiclist)
 * [`isValidExt`](#isvalidext)
@@ -32030,6 +32638,17 @@ IN:
     channel - audio channel to get volume for (string)
 
 RETURNS: volume of the audio channel as double/float
+```
+## `hasMusicMuted`
+
+| File | Store Module | Available After | Visiblity |
+| ---:| ---:| ---:|:--- |
+| `zz_music_selector` | [`songs_-1`]() | `-1` | `public` |
+
+```
+Checks if the player has the music channel muted or the 'Mute All' option enabled.
+
+RETURNS: True if the music channel is muted or the 'Mute All' option is enabled, False otherwise
 ```
 ## `initMusicChoices`
 
