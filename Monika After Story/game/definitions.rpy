@@ -19,6 +19,10 @@ python early:
     import traceback
     _dev_tb_list = []
 
+    # renpy core function overrides
+    # NOTE: TODO: check this when upgrading renpy to make sure we dont 
+    #   do any fatal overrides.
+
     def dummy(*args, **kwargs):
         """
         Dummy function that does nothing
@@ -28,6 +32,14 @@ python early:
     # clear this so no more traceback. We expect node loops anyway
     renpy.execution.check_infinite_loop = dummy
 
+    def mas_save_persistent():
+        """
+        Saves persistent without caring about mod times
+        """
+        renpy.persistent.should_save_persistent = True
+        renpy.persistent.save()
+
+    renpy.exports.save_persistent = mas_save_persistent
 
 # uncomment this if you want syntax highlighting support on vim
 # init -1 python:
