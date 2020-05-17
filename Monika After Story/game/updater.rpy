@@ -928,7 +928,7 @@ label update_now:
 
             # call quit so we can save important stuff
             call quit
-            $ renpy.save_persistent()
+            $ mas_save_persistent()
             $ updater.update(update_link, restart=True)
 
             #Clear any potential lingering things in tray

@@ -1347,7 +1347,7 @@ label ch30_preloop:
         mas_updateFilterDict()
 
         # save here before we enter the loop
-        renpy.save_persistent()
+        mas_save_persistent()
 
         # check if we need to rebulid ev
         if mas_idle_mailbox.get_rebuild_msg():
@@ -1639,7 +1639,7 @@ label ch30_minute(time_since_check):
         _mas_AffSave()
 
         # save the persistent
-        renpy.save_persistent()
+        mas_save_persistent()
 
     return
 

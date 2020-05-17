@@ -26,5 +26,5 @@ init 800 python:
            
         persistent.closed_self = True
         persistent._mas_game_crashed = False
-        renpy.save_persistent()
+        mas_save_persistent()
         renpy.jump("_quit")

@@ -35,11 +35,11 @@ python early:
     def mas_save_persistent():
         """
         Saves persistent without caring about mod times
+        NOTE: override the export function does not work. Some contexts still
+        call the old save_persistent()
         """
         renpy.persistent.should_save_persistent = True
         renpy.persistent.save()
-
-    renpy.exports.save_persistent = mas_save_persistent
 
 # uncomment this if you want syntax highlighting support on vim
 # init -1 python:

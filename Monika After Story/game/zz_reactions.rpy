@@ -1059,7 +1059,7 @@ init python:
         store.mas_selspr.json_sprite_unlock(sp_obj, unlock_label=unlock_sel)
 
         # save persistent
-        renpy.save_persistent()
+        mas_save_persistent()
 
     def mas_giftCapGainAff(amount=None, modifier=1):
         if amount is None:

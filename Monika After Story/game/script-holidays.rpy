@@ -429,7 +429,7 @@ label mas_o31_autoload_check:
                 store.mas_selspr.save_selectables()
 
                 #Save persist
-                renpy.save_persistent()
+                mas_save_persistent()
 
                 #Select greet
                 greet_label = "greeting_o31_{0}".format(costume.name)
@@ -1511,7 +1511,7 @@ init -10 python:
 
         # save the restuls
         store.mas_selspr.save_selectables()
-        renpy.save_persistent()
+        mas_save_persistent()
 
 
 init -10 python in mas_d25_utils:
@@ -3602,7 +3602,7 @@ label mas_nye_monika_nyd_fresh_start:
             # reset affection and save it
             $ mas_setAffection(0)
             $ _mas_AffSave()
-            $ renpy.save_persistent()
+            $ mas_save_persistent()
 
             m 4wua "Really?"
             m 1hua "Oh, [player], you have no idea how happy that makes me!"
@@ -3618,7 +3618,7 @@ label mas_nye_monika_nyd_fresh_start:
             # set affection to broken
             $ mas_setAffection(store.mas_affection.AFF_BROKEN_MIN - 1)
             $ _mas_AffSave()
-            $ renpy.save_persistent()
+            $ mas_save_persistent()
 
             m 6dktpc "..."
             m 6ektpc "I...I..."
@@ -4424,7 +4424,7 @@ label mas_player_bday_autoload_check:
     elif mas_isMoniEnamored(lower=True) and monika_chr.clothes == mas_clothes_blackdress:
         $ monika_chr.reset_clothes(False)
         $ monika_chr.save()
-        $ renpy.save_persistent()
+        $ mas_save_persistent()
 
     # making sure we are already not in bday mode, have confirmed birthday, have normal+ affection and have not celebrated in any way
     if (
@@ -5191,7 +5191,7 @@ label mas_f14_autoload_check:
             ):
                 monika_chr.change_clothes(mas_clothes_sundress_white, by_user=False, outfit_mode=True)
                 monika_chr.save()
-                renpy.save_persistent()
+                mas_save_persistent()
 
         elif not mas_isF14():
             #We want to lock all the extra topics
@@ -5210,7 +5210,7 @@ label mas_f14_autoload_check:
             if mas_isMoniEnamored(lower=True) and monika_chr.clothes == mas_clothes_sundress_white:
                 monika_chr.reset_clothes(False)
                 monika_chr.save()
-                renpy.save_persistent()
+                mas_save_persistent()
 
     if mas_isplayer_bday() or persistent._mas_player_bday_in_player_bday_mode:
         jump mas_player_bday_autoload_check
@@ -6221,7 +6221,7 @@ label mas_bday_autoload_check:
         if mas_isMoniEnamored(lower=True) and monika_chr.clothes == mas_clothes_blackdress:
             $ monika_chr.reset_clothes(False)
             $ monika_chr.save()
-            $ renpy.save_persistent()
+            $ mas_save_persistent()
 
     #It's Moni's bday! If we're here that means we're spending time with her, so:
     $ persistent._mas_bday_no_time_spent = False

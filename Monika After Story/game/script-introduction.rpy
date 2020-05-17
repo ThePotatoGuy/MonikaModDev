@@ -294,7 +294,7 @@ label chara_monika_scare:
 
     # set this seen to True so Monika does know how to do things.
     $ persistent._seen_ever["monikaroom_greeting_ear_rmrf_end"] = True
-    $ renpy.save_persistent()
+    $ mas_save_persistent()
 
     show screen mas_py_console_teaching
     pause 1.0

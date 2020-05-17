@@ -2132,7 +2132,7 @@ label call_next_event:
             if "idle" in ret_items:
                 $ store.mas_globals.in_idle_mode = True
                 $ persistent._mas_in_idle_mode = True
-                $ renpy.save_persistent()
+                $ mas_save_persistent()
 
             if "love" in ret_items:
                 $ mas_ILY()

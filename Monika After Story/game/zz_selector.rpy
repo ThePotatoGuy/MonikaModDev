@@ -3282,7 +3282,7 @@ label mas_selector_sidebar_select_confirm:
 
         # always save confirming
         monika_chr.save()
-        renpy.save_persistent()
+        mas_save_persistent()
 
     return True
 

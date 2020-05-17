@@ -1891,7 +1891,7 @@ label mas_bday_player_bday_select_select:
     $ mas_poems.paper_cat_map["pbday"] = "mod_assets/poem_assets/poem_pbday_" + str(store.persistent._mas_player_bday.month) + ".png"
     $ store.mas_player_bday_event.correct_pbday_mhs(selected_date)
     $ store.mas_history.saveMHSData()
-    $ renpy.save_persistent()
+    $ mas_save_persistent()
     jump birthdate_set
 
 
@@ -2174,7 +2174,7 @@ label mas_clothes_change(outfit=None, outfit_mode=False, exp="monika 2eua", rest
         $ store.mas_selspr.unlock_clothes(outfit)
         $ store.mas_selspr.save_selectables()
     $ monika_chr.save()
-    $ renpy.save_persistent()
+    $ mas_save_persistent()
 
     pause 4.0
     call mas_transition_from_emptydesk(exp)
@@ -2262,7 +2262,7 @@ label mas_birthdate_year_redux_select:
                         persistent._mas_player_bday = persistent._mas_player_bday.replace(year=_return)
                         store.mas_player_bday_event.correct_pbday_mhs(persistent._mas_player_bday)
                         store.mas_history.saveMHSData()
-                        renpy.save_persistent()
+                        mas_save_persistent()
 
                         # update calendar
                         store.mas_calendar.addRepeatable_d(
