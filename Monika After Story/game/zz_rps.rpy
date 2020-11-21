@@ -11,7 +11,37 @@ default persistent._mas_rps_player_stats = {}
 
 init -10 python in mas_rps:
 
-    pass
+    class MASRPSDisplayable(renpy.Displayable):
+        """
+        RPS (janken) displayable.
+
+        Use with the controller to make stuff happen
+        """
+        import pygame
+
+        def __init__(self):
+            super(MASRPSDisplayable, self).__init__()
+
+            # TODO: make MASButtnDisplyables
+
+        def event(self, ev, x, y, st):
+            """
+            Event function
+            """
+            return None
+
+        def render(self, width, height, st, at):
+            """
+            Render function
+            """
+            r = renpy.Render(width, height)
+            return r
+
+
+    class MASRPSController(object):
+        """
+        Controller for the RPS Displayable
+        """
 
 
 
