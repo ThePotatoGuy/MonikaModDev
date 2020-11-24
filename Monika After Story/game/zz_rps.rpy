@@ -22,7 +22,19 @@ init -10 python in mas_rps:
         def __init__(self):
             super(MASRPSDisplayable, self).__init__()
 
-            # TODO: make MASButtnDisplyables
+            # TODO: add factor scale images here
+            rock_c = 
+
+            self._button_rock = MASButtonDisplayable(
+                "",
+                "",
+                "",
+                "mod_assets/games/rps/rock.png",
+                "mod_assets/games/rps/rock.png",
+                "mod_assets/games/rps/rock_bw.png",
+                355,
+                266
+                
 
         def event(self, ev, x, y, st):
             """
