@@ -1,3 +1,23 @@
+
+init -9 python in mas_windowreacts:
+    dev_seconds = 3
+
+
+label dev_run_wrs:
+    python:
+        seconds = 3
+        try:
+            seconds = mas_windowreacts.dev_seconds
+        except:
+            seconds = 3
+
+        renpy.pause(seconds)
+        mas_checkForWindowReacts()
+        active_window = mas_getActiveWindow()
+
+    return
+
+
 init 5 python:
     addEvent(
         Event(
@@ -33,4 +53,37 @@ label monika_inActiveWindowCheck:
     $ ActiveWindow = mas_getActiveWindow(True)
     $ inActiveWindow = mas_isInActiveWindow(active_window_keys, non_inclusive)
     m 1hua "Okay, your active window was: [ActiveWindow], and your keys returned [inActiveWindow]."
+    return
+
+
+init 5 python:
+    addEvent(
+        Event(
+            persistent._mas_windowreacts_database,
+            eventlabel="mas_wrs_pekopeko_ddlc_01",
+            category=[
+                "DDLC",
+                "ドキドキ文芸部に入部してみるぺこ",
+                "ホロライブ",
+                "兎田ぺこら"
+            ],
+            rules={"notif-group": "Window Reactions", "skip alert": None},
+            show_in_idle=True
+        ),
+        code="WRS"
+    )
+
+label mas_wrs_pekopeko_ddlc_01:
+    $ wrs_success = display_notif(
+        m_name,
+        [
+            "HA↑HA↓HA↑HA↓HA↑HA↓HA↑! Did I do it right?",
+            "PE↗KO↘",
+            "ALMOND ALMOND"
+        ],
+        "Window Reactions"
+    )
+
+    # why lock dev at all?
+    $ mas_unlockFailedWRS("mas_wrs_pekopeko_ddlc_01")
     return
