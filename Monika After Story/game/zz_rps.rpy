@@ -1,6 +1,11 @@
 # rps (janken)
 
 
+image rock_test = im.FactorScale("mod_assets/games/rps/rock.png", 0.75)
+image paper_test = im.FactorScale("mod_assets/games/rps/paper.png", 0.6)
+image sis_test = im.FactorScale("mod_assets/games/rps/scissors.png", 0.7)
+
+
 default persistent._mas_rps_player_stats = {}
 # known stats:
 #   "r": dict:
@@ -10,6 +15,8 @@ default persistent._mas_rps_player_stats = {}
 
 
 init -10 python in mas_rps:
+    
+    import store.im as im
 
     class MASRPSDisplayable(renpy.Displayable):
         """
@@ -19,22 +26,32 @@ init -10 python in mas_rps:
         """
         import pygame
 
+        BTN_FACTOR_SCALE = 0.6
+
         def __init__(self):
             super(MASRPSDisplayable, self).__init__()
 
-            # TODO: add factor scale images here
-            rock_c = 
+            # factor scale images
+            rock_clr = im.FactorScale(
+                "mod_assets/games/rps/rock.png", self.BTN_FACTOR_SCALE
+            )
+            rock_bw = im.FactorScale(
+                "mod_assets/games/rps/rock_bw.png", self.BTN_FACTOR_SCALE
+            )
+            paper_clr = im.FactorScale(
+                "mod_assets/games/rps/paper.png", self.BTN_FACTOR_SCALE
+            )
+            paper_bw = im.FactorScale(
+                "mod_assets/games/rps/paper_bw.png", self.BTN_FACTOR_SCALE
+            )
+            scissors_clr = im.FactorScale(
+                "mod_assets/games/rps/scissors.png", self.BTN_FACTOR_SCALE
+            )
+            scissors_bw = im.FactorScale(
+                "mod_assets/games/rps/scissors_bw.png", self.BTN_FACTOR_SCALE
+            )
 
-            self._button_rock = MASButtonDisplayable(
-                "",
-                "",
-                "",
-                "mod_assets/games/rps/rock.png",
-                "mod_assets/games/rps/rock.png",
-                "mod_assets/games/rps/rock_bw.png",
-                355,
-                266
-                
+            # TODO
 
         def event(self, ev, x, y, st):
             """
