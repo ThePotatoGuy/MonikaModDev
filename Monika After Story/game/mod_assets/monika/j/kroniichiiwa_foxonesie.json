@@ -1,0 +1,70 @@
+{
+    "__author": "Kroniichiiwa",
+    "version": 4,
+    "type": 2,
+    "name": "kroniichiiwa_foxonesie",
+    "img_sit": "kroniichiiwa_foxonesie",
+    "pose_map": {
+        "mpm_type": 0,
+        "p1": true,
+        "p2": true,
+        "p3": true,
+        "p4": true,
+        "p5": true,
+        "p6": true,
+        "p7": true
+    },
+    "stay_on_start": true,
+    "ex_props": {
+        "sweater": true
+    },
+    "select_info": {
+        "display_name": "Fox Onesie",
+        "thumb": "kroniichiiwa_foxonesie",
+        "group": "clothes",
+        "select_dlg": [
+            "kon- kon!",
+            "looks familiar, hm?",
+            "this makes me wanna cuddle up to you~ ehehe~"
+        ]
+    },
+    "giftname": "kroniichiiwa_foxonesie",
+    "pose_arms": {
+        "crossed": {
+            "tag": "crossed",
+            "layers": "5^10"
+        },
+        "left-down": {
+            "tag": "down",
+            "layers": "0"
+        },
+        "left-rest": {
+            "tag": "rest",
+            "layers": "10"
+        },
+        "right-down": {
+            "tag": "down",
+            "layers": "0"
+        },
+        "right-point": {
+            "tag": "point",
+            "layers": "0"
+        },
+        "right-restpoint": {
+            "tag": "restpoint",
+            "layers": "10"
+        },
+        "steepling": {
+            "tag": "steepling",
+            "layers": "10"
+        },
+        "def|left-def": {
+            "tag": "def",
+            "layers": "10"
+        },
+        "def|right-def": {
+            "tag": "def",
+            "layers": "5^10"
+        }
+    }
+}
